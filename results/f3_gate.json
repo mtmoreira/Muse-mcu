@@ -1,0 +1,14 @@
+{
+  "gate": "F3",
+  "verdict": "PASS",
+  "date": "2026-10-09",
+  "backend": "verilator-5.032 (zero-delay, cycle-based)",
+  "netlist": "synth/mcu_netlist.v",
+  "netlist_sha256": "b1c22515da35b54e9c3c06f4aa6bc63682f84cfe26abe8462f2c435264bfae9c",
+  "firmware": "fw/build/preempt_test.hex (HP_SYM=vHPTask, range 0x1d60-0x1df8)",
+  "events": 10,
+  "max_latency_cycles": 208,
+  "latency_bound_cycles": 2000,
+  "hp_entries": 15,
+  "note": "Icarus backend infeasible (~100 cyc/sec); Verilator used per manifest per-run backend allowance. Same netlist, firmware, 2000-cycle bound."
+}

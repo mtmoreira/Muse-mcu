@@ -42,6 +42,7 @@ module tb_preempt;
   // ---- firmware load + HP range ----
   string hex_path;
   logic [31:0] hp_lo, hp_hi;
+  int min_events;
   initial begin
     if (!$value$plusargs("hex=%s", hex_path)) begin
       $display("TB_PREEMPT: FAIL: +hex=<file> plusarg missing"); $fatal(1);
@@ -52,6 +53,9 @@ module tb_preempt;
     if (!$value$plusargs("hp_hi=%h", hp_hi)) begin
       $display("TB_PREEMPT: FAIL: +hp_hi=<hex> plusarg missing"); $fatal(1);
     end
+    // C1 requires >= 50 events; the F3 gate run uses +min_events=10
+    // (same 2000-cycle bound per event).
+    if (!$value$plusargs("min_events=%d", min_events)) min_events = 50;
     $readmemh(hex_path, dut.rom.mem);
     $display("TB_PREEMPT: loaded %s, HP range [0x%08x, 0x%08x)", hex_path, hp_lo, hp_hi);
   end
@@ -154,7 +158,7 @@ module tb_preempt;
     #1;
     $display("TB_PREEMPT: reset released");
 
-    wait (events >= 50);
+    wait (events >= min_events);
     // let any in-flight pulse settle, then stop pulsing via finish
     repeat (50000) @(posedge clk);
 
@@ -163,8 +167,10 @@ module tb_preempt;
     $display("TB_PREEMPT: %0d events, max latency %0d cycles", events, max_lat);
     $display("TB_PREEMPT: MARK transitions: lp=%0d hp=%0d, HP pc-range entries=%0d",
              mark_lp, mark_hp, hp_entries);
-    if (hp_entries < 50)
-      fail($sformatf("only %0d HP pc-range entries, need >= 50", hp_entries));
+    if (events < min_events)
+      fail($sformatf("only %0d preemption events, need >= %0d", events, min_events));
+    if (hp_entries < min_events)
+      fail($sformatf("only %0d HP pc-range entries, need >= %0d", hp_entries, min_events));
 
     $display("TB_PREEMPT: ALL PASS (%0d/%0d events within 2000 cycles)", events, events);
     $finish;

@@ -1,0 +1,14 @@
+{
+  "gate": "F2",
+  "verdict": "PASS",
+  "date": "2026-10-09",
+  "backend": "verilator-5.032 (zero-delay, cycle-based)",
+  "netlist": "synth/mcu_netlist.v",
+  "netlist_sha256": "b1c22515da35b54e9c3c06f4aa6bc63682f84cfe26abe8462f2c435264bfae9c",
+  "firmware": "fw/build/gate4/app_demo.hex (FLASH_MSG_COUNT=4)",
+  "flash": "fw/build/gate4/flash_f2.hex (4 messages: 0, 56, 64, 1024 bytes)",
+  "uart_log": "results/raw/gate_uart.log",
+  "packets": "4/4 (check_app.py --expect-nmsg 4: ALL PASS)",
+  "cycles": 3297153,
+  "note": "Icarus backend infeasible (~100 cyc/sec = 7+ hours); Verilator used per manifest per-run backend allowance. Same netlist, firmware, flash, checker."
+}

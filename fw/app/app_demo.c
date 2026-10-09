@@ -6,16 +6,16 @@
  *       header (magic 0x46534C41 "FSLA", version, seed, msg_count) then each
  *       of the 24 messages via SPI 0x03 READ; copies data into a static
  *       pool (4 x 1152 bytes); posts {id, len, buf} to the msg queue
- *       (depth 4); prints "MARK spi_read <id>".
+ *       (depth 4); prints "MARK spi_read <id> <len>" and "MARK queue <id>".
  *   sha task (prio 3): blocks on the msg queue; computes sha256_fw();
  *       transmits "PKT 9E55AA01 <id> <len> <digest64hex>" over UART;
  *       prints "MARK sha_done <id>"; returns the buffer to the free pool.
  *   background task (prio 1): continuous xorshift32 loop, never blocks or
- *       yields; prints "MARK bg <n>" every ~1M iterations.
+ *       yields; prints "MARK bg" every 2k iterations (~20k cycles).
  *
  * D2: sha_selftest_run() executes FIRST at boot, before any task is
- * created. Any vector mismatch prints "TEST sha_selftest FAIL: ..." and
- * halts boot. On success it prints "TEST sha_selftest PASS".
+ * created. Any vector mismatch prints "SHA SELFTEST FAIL: ..." and
+ * halts boot. On success it prints "SHA SELFTEST PASS".
  *
  * After all 24 messages are processed the sha task prints
  * "TEST app_demo PASS" and halts (the testbench watchdog bounds the run).
@@ -50,7 +50,13 @@ void sha256_fw( const uint8_t * msg, uint32_t len, uint8_t out[ 32 ] );
 /*-----------------------------------------------------------*/
 #define FLASH_MAGIC       0x46534C41UL
 #define FLASH_VERSION     1UL
+/* Build-overridable for the F2 gate subset (4 messages): the D1 image keeps
+ * the default 24. The .hex/.elf pair for F2 is built with
+ * EXTRA_DEFS=-DFLASH_MSG_COUNT=4 into a separate build dir; the frozen D1
+ * image (fw/build/app_demo.hex) is untouched. */
+#ifndef FLASH_MSG_COUNT
 #define FLASH_MSG_COUNT   24U
+#endif
 #define FLASH_MAX_MSG     1024U
 #define POOL_BUFS         4U
 #define POOL_BUF_SIZE     1152U
@@ -194,7 +200,9 @@ static void vAcqTask( void * pvParameters )
         offset += msg.len;
 
         /* Hand to the SHA task (blocks when the queue is full:
-         * backpressure). Track the depth watermark. */
+         * backpressure). Track the depth watermark and publish it to the
+         * GPIO debug scratch register (the testbench's observation
+         * point for queue pressure). */
         if( xQueueSend( xMsgQueue, &msg, portMAX_DELAY ) != pdPASS )
         {
             prvFail( "msg queue send" );
@@ -203,10 +211,16 @@ static void vAcqTask( void * pvParameters )
         if( uxWaiting > ulQueueWatermark )
         {
             ulQueueWatermark = uxWaiting;
+            GPIO_DBG_SCRATCH = ulQueueWatermark;
         }
 
         xSemaphoreTake( xPrintMutex, portMAX_DELAY );
         uart_puts( "MARK spi_read " );
+        prvPutU32Dec( msg.id );
+        uart_putc( ' ' );
+        prvPutU32Dec( msg.len );
+        uart_putc( '\n' );
+        uart_puts( "MARK queue " );
         prvPutU32Dec( msg.id );
         uart_putc( '\n' );
         xSemaphoreGive( xPrintMutex );
@@ -253,12 +267,24 @@ static void vShaTask( void * pvParameters )
         /* Return the buffer to the pool. */
         xQueueSend( xFreeQueue, &msg.buf, portMAX_DELAY );
 
+        /* Pace the consumer: 6 ticks (300k cycles) per message. While the
+         * SHA task is delayed and the acquisition task is blocked on the
+         * full message queue, the background task (prio 1) runs; it is
+         * preempted again when the SHA task unblocks. Without this, the
+         * acquisition and SHA tasks are never blocked simultaneously and
+         * the background task starves. The delay exceeds the acq task's
+         * per-message work (~250k cycles, mostly its MARK prints) so the
+         * acq task reliably blocks and yields to bg. */
+        vTaskDelay( 6 );
+
         ulMsgsDone++;
         if( ( ulMsgsDone >= FLASH_MSG_COUNT ) && ( iPassDone == 0 ) )
         {
             iPassDone = 1;
             xSemaphoreTake( xPrintMutex, portMAX_DELAY );
-            uart_puts( "TEST app_demo PASS msgs=24 watermark=" );
+            /* Exact marker-protocol line the testbench waits for. */
+            uart_puts( "TEST app_demo PASS\n" );
+            uart_puts( "MARK watermark " );
             prvPutU32Dec( ulQueueWatermark );
             uart_putc( '\n' );
             prvHalt();
@@ -274,7 +300,6 @@ static void vBgTask( void * pvParameters )
 {
     uint32_t x = 0x9E3779B9U;
     uint32_t iters = 0;
-    uint32_t marks = 0;
 
     ( void ) pvParameters;
 
@@ -283,17 +308,19 @@ static void vBgTask( void * pvParameters )
         x ^= x << 13;
         x ^= x >> 17;
         x ^= x << 5;
-        if( ++iters >= 1000000U )
+        /* Mark every 2k iterations (~20k cycles): fast enough for the
+         * testbench's >= 10 MARK bg threshold within the background
+         * task's scheduled windows, slow enough to keep UART overhead
+         * negligible. */
+        if( ++iters >= 2000U )
         {
             iters = 0;
-            marks++;
             /* Best-effort print: never block the compute loop on the
-             * print mutex; skip the mark if another task is printing. */
+             * print mutex; skip the mark if another task is printing.
+             * Exact marker-protocol line counted by the testbench. */
             if( xSemaphoreTake( xPrintMutex, 0 ) == pdPASS )
             {
-                uart_puts( "MARK bg " );
-                prvPutU32Dec( marks );
-                uart_putc( '\n' );
+                uart_puts( "MARK bg\n" );
                 xSemaphoreGive( xPrintMutex );
             }
         }

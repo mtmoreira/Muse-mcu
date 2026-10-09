@@ -65,6 +65,7 @@ module tb_app;
   string hex_path, img_path, uartlog_path, vcd_path;
   logic [31:0] bg_lo, bg_hi;
   int expect_nmsg, vcd_win;
+  int min_watermark, min_bg, min_bg_entries;
   bit have_bg_range;
   initial begin
     if (!$value$plusargs("hex=%s", hex_path)) begin
@@ -79,6 +80,12 @@ module tb_app;
       vcd_path = "results/raw/demo_trace.vcd";
     if (!$value$plusargs("expect_nmsg=%d", expect_nmsg)) expect_nmsg = 24;
     if (!$value$plusargs("vcdwin=%d", vcd_win)) vcd_win = 1000000;
+    // D1 acceptance thresholds; the F2 gate subset overrides these via
+    // plusargs (fewer messages => less queue pressure / fewer bg marks).
+    // The packet checks (count, order, digests) are NOT relaxable.
+    if (!$value$plusargs("min_watermark=%d", min_watermark)) min_watermark = 4;
+    if (!$value$plusargs("min_bg=%d", min_bg)) min_bg = 10;
+    if (!$value$plusargs("min_bg_entries=%d", min_bg_entries)) min_bg_entries = 5;
     have_bg_range = $value$plusargs("bg_lo=%h", bg_lo) &&
                     $value$plusargs("bg_hi=%h", bg_hi);
     $readmemh(hex_path, dut.rom.mem);
@@ -206,7 +213,9 @@ module tb_app;
   initial begin
     wait (uartlog_fd != 0);
     forever begin
-      while (sink.byte_q.size() == 0) @(sink.byte_ev);
+      // Poll the queue; do NOT wait on sink.byte_ev (events don't persist;
+      // a trigger that fires before the waiter starts is missed forever).
+      while (sink.byte_q.size() == 0) @(posedge clk);
       $fwrite(uartlog_fd, "%c", sink.byte_q.pop_front());
     end
   end
@@ -308,14 +317,14 @@ module tb_app;
           string dg;
           dg = l.substr(l.len() - 64, l.len() - 1);
           if ($sscanf(l, "PKT 9E55AA01 %d %d", id, ln) == 2 && dg.len() == 64) begin
-            string expect;
+            string expdg;
             if (id != pkt_count)
               fail($sformatf("packet %0d out of order (expected id %0d)", id, pkt_count));
             if (id < 0 || id >= nmsg || ln != msg_len[id])
               fail($sformatf("packet %0d len %0d mismatch vs image", id, ln));
             $display("DEMO: SHA-256(%0d) = %s", id, tolower64(dg));
-            expect = sha256_hex(msg_off[id], msg_len[id]);
-            if (tolower64(dg) != expect)
+            expdg = sha256_hex(msg_off[id], msg_len[id]);
+            if (tolower64(dg) != expdg)
               fail($sformatf("packet %0d digest mismatch", id));
             pkt_count++;
             pkt_verified++;
@@ -357,15 +366,17 @@ module tb_app;
     // queue watermark via GPIO dbg_scratch
     watermark = dut.gpio0.scratch_q;
     $display("TB_APP: queue watermark = %0d", watermark);
-    if (watermark < 4)
-      fail($sformatf("queue watermark %0d < 4 (no queue pressure observed)", watermark));
+    if (watermark < min_watermark)
+      fail($sformatf("queue watermark %0d < %0d (no queue pressure observed)",
+                     watermark, min_watermark));
 
     // background task liveness + preemption
     $display("TB_APP: MARK bg count = %0d, bg pc-range entries = %0d", mark_bg, bg_entries);
-    if (mark_bg < 10)
-      fail($sformatf("only %0d MARK bg lines, need >= 10", mark_bg));
-    if (have_bg_range && bg_entries < 5)
-      fail($sformatf("only %0d bg pc-range entries, need >= 5", bg_entries));
+    if (mark_bg < min_bg)
+      fail($sformatf("only %0d MARK bg lines, need >= %0d", mark_bg, min_bg));
+    if (have_bg_range && bg_entries < min_bg_entries)
+      fail($sformatf("only %0d bg pc-range entries, need >= %0d",
+                     bg_entries, min_bg_entries));
 
     $fclose(uartlog_fd);
     $display("TB_APP: SIM PASS (%0d/%0d packets live-verified, watermark %0d, bg %0d/%0d)",

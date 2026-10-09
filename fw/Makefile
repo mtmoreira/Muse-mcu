@@ -21,8 +21,10 @@ REPO  := $(abspath $(CURDIR)/..)
 
 # Note: -march=rv32i_zicsr (not bare rv32i): the MCU implements Zicsr and
 # crt0/drivers/port use CSR instructions.
+# EXTRA_DEFS: extra -D flags for variant builds (e.g. the F2 gate image:
+#   make -C fw APP=app_demo BUILD=build/gate4 EXTRA_DEFS=-DFLASH_MSG_COUNT=4)
 CFLAGS := -march=rv32i_zicsr -mabi=ilp32 -mcmodel=medany -O2 -ffreestanding -nostdlib \
-          -msmall-data-limit=0 -Wall -Wextra \
+          -msmall-data-limit=0 -Wall -Wextra $(EXTRA_DEFS) \
           -Iinclude -I$(REPO)/fw/include \
           -I$(REPO)/fw/freertos -I$(REPO)/fw/port -I$(REPO)/fw/sha256 \
           -I$(REPO)/third_party/freertos_kernel/include \
