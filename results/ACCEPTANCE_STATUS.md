@@ -32,7 +32,7 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | R1 | Bootstrap | PENDING | env/bootstrap.sh | |
 | R2 | make acceptance | PENDING | Makefile | After all gates |
 | DEMO1 | Live demo | PENDING | results/demo_transcript.txt | After D1 |
-| FIG1 | Arch figure | PENDING | doc/fig_arch.png | |
+| FIG1 | Arch figure | PASS | doc/fig_arch.png | Generated from rtl/ metadata, visually verified 2026-10-09 |
 | FIG2 | Trace figure | PENDING | doc/fig_trace.png | After D1 |
 
 ## Verdict rules
