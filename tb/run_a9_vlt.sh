@@ -14,7 +14,9 @@ set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-VLT=/home/hatch/workspace/tools/verilator-src/bin/verilator
+VLT="${VLT_BIN:-$(command -v verilator)}"
+[ -n "$VLT" ] || VLT=/home/hatch/workspace/tools/verilator-src/bin/verilator
+[ -x "$VLT" ] || { echo "verilator not found (set VLT_BIN)"; exit 1; }
 BIN=build/rtl_vlt/vobj_a9v/Vsim_top_rtl
 HEX=fw/build/timer_gpio_test.hex
 LOG=tb/logs/a9_verilator.log

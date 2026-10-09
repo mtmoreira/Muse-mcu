@@ -9,11 +9,12 @@ Usage: python3 tools/run_acceptance.py [--smoke]
   --smoke: run only the labeled fast subset (A3, A4, A6, C1-quick).
 """
 import argparse
+import os
 import subprocess
 import sys
 import yaml
 
-ROOT = "/home/hatch/workspace/Muse-mcu"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Map requirement ID -> gate command (run from ROOT). Each must exit 0 on PASS.
 GATES = {

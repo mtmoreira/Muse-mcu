@@ -28,7 +28,9 @@ cd "$ROOT"
 
 echo "F2: gate-level app subset — ZERO-DELAY (verilator backend, see header)"
 
-VLT=/home/hatch/workspace/tools/verilator-src/bin/verilator
+VLT="${VLT_BIN:-$(command -v verilator)}"
+[ -n "$VLT" ] || VLT=/home/hatch/workspace/tools/verilator-src/bin/verilator
+[ -x "$VLT" ] || { echo "verilator not found (set VLT_BIN)"; exit 1; }
 SEED="${SEED:-1}"
 TIMEOUT_S="${TIMEOUT_S:-1800}"
 LOG=tb/logs/gate_app_vlt.log

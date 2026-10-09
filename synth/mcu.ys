@@ -14,10 +14,13 @@
 # Run from the repo root:  yosys -l tb/logs/synth.log synth/mcu.ys
 # (or via the driver:      synth/run_synth.sh)
 
-# (Yosys 0.33 script files have no `set`; the liberty path is absolute below.)
+# (Yosys 0.33 script files have no `set` and no env expansion, so the liberty
+# path is the placeholder @PDK_LIB@, substituted by synth/run_synth.sh from
+# $PDK_DIR. To run this file directly: sed "s|@PDK_LIB@|<path-to-lib>|g"
+# synth/mcu.ys > /tmp/mcu.ys && yosys -l tb/logs/synth.log /tmp/mcu.ys)
 
 # --- read inputs ---------------------------------------------------------
-read_liberty -lib /home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib
+read_liberty -lib @PDK_LIB@
 
 read_verilog -sv rtl/rv32i_cpu.sv
 read_verilog -sv rtl/bus_interconnect.sv
@@ -38,12 +41,12 @@ blackbox sram
 # --- generic synthesis + technology mapping ------------------------------
 synth -top mcu_top
 
-dfflibmap -liberty /home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib
-abc -liberty /home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib
+dfflibmap -liberty @PDK_LIB@
+abc -liberty @PDK_LIB@
 clean
 
 # --- reports --------------------------------------------------------------
-stat -liberty /home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib
+stat -liberty @PDK_LIB@
 
 # --- outputs ---------------------------------------------------------------
 write_verilog synth/mcu_netlist.v

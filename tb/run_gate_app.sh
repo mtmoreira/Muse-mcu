@@ -63,9 +63,10 @@ fi
 # ---- cell-model coverage: every cell type used by the netlist must have a
 # ---- zero-delay model (fail closed; never silently unbound) ----
 echo "F2: checking cell-model coverage"
-python3 - "$NETLIST" "$CELLS" <<'EOF'
+PDK_DIR="${PDK_DIR:-$HOME/workspace/pdk-dl/nangate45}"
+python3 - "$NETLIST" "$CELLS" "$PDK_DIR/NangateOpenCellLibrary_typical.lib" <<'EOF'
 import re, sys
-nl, cells = sys.argv[1], sys.argv[2]
+nl, cells, lib = sys.argv[1], sys.argv[2], sys.argv[3]
 with open(nl) as f: nlt = f.read()
 with open(cells) as f: ct = f.read()
 defined = set(re.findall(r'^module\s+(\w+)', nlt, re.M))
@@ -75,7 +76,7 @@ used -= {'module', 'wire', 'input', 'output', 'inout', 'reg', 'assign',
          'parameter', 'localparam', 'function', 'task'}
 modeled = set(re.findall(r'^module\s+(\w+)', ct, re.M))
 lib_cells = set()
-with open('/home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib') as f:
+with open(lib) as f:
     for line in f:
         mm = re.match(r'\s*cell\s*\(\s*(\w+)\s*\)', line)
         if mm: lib_cells.add(mm.group(1))

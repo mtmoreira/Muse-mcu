@@ -8,7 +8,7 @@ for _d in /usr/bin "$HOME/workspace/building-ai-computer/toolchains/icarus/deb/u
   if [ -x "$_d/iverilog" ]; then IVL_BIN="$_d"; break; fi
 done
 [ -n "$IVL_BIN" ] || { echo "no iverilog found"; exit 1; }
-MMCU="$HOME/workspace/Muse-mcu"
+MMCU="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HEXDIR="${1:-$MMCU/fw/build/arch}"
 SIGDIR="$MMCU/results/raw/arch"
 LOGDIR="$MMCU/tb/logs"

@@ -13,3 +13,4 @@ build/
 # Toolchains and PDKs live outside the repo (see env/bootstrap.sh)
 # Vendored third-party SOURCES are committed (see third_party/PINS.md);
 # their upstream git checkouts are not.
+*.gen

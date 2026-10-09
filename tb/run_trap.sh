@@ -1,7 +1,7 @@
 #!/bin/bash
 # tb_trap runner (A4): 8 directed trap cases. Exits nonzero on failure.
 set -uo pipefail
-MMCU="$HOME/workspace/Muse-mcu"
+MMCU="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Icarus location (robust to VM replacement): prefer /usr/bin, fall back to local toolchain copy.
 IVL_BIN=""
 for _d in /usr/bin "$HOME/workspace/building-ai-computer/toolchains/icarus/deb/usr/bin"; do

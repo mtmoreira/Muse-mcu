@@ -25,7 +25,9 @@ cd "$ROOT"
 
 echo "F3: gate-level RTOS preemption — ZERO-DELAY (verilator backend, see header)"
 
-VLT=/home/hatch/workspace/tools/verilator-src/bin/verilator
+VLT="${VLT_BIN:-$(command -v verilator)}"
+[ -n "$VLT" ] || VLT=/home/hatch/workspace/tools/verilator-src/bin/verilator
+[ -x "$VLT" ] || { echo "verilator not found (set VLT_BIN)"; exit 1; }
 FW_HEX="${FW_HEX:-fw/build/preempt_test.hex}"
 FW_ELF="${FW_ELF:-${FW_HEX%.hex}.elf}"
 HP_SYM="${HP_SYM:-vHPTask}"

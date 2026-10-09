@@ -17,9 +17,17 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 mkdir -p synth tb/logs results
 
+# PDK location (env-overridable; default matches env/bootstrap.sh).
+PDK_DIR="${PDK_DIR:-$HOME/workspace/pdk-dl/nangate45}"
+PDK_LIB="$PDK_DIR/NangateOpenCellLibrary_typical.lib"
+[ -f "$PDK_LIB" ] || { echo "F1: FAIL: PDK liberty not found: $PDK_LIB (set PDK_DIR)"; exit 1; }
+
+# Yosys 0.33 script files have no env expansion: substitute the placeholder.
+sed "s|@PDK_LIB@|$PDK_LIB|g" synth/mcu.ys > synth/mcu.ys.gen
+
 LOG=tb/logs/synth.log
 echo "F1: yosys synth (log: $LOG)"
-yosys -l "$LOG" synth/mcu.ys
+yosys -l "$LOG" synth/mcu.ys.gen
 rc=$?
 echo "F1: yosys exit code = $rc"
 [ $rc -eq 0 ] || { echo "F1: FAIL: yosys nonzero exit"; exit 1; }
@@ -27,11 +35,11 @@ echo "F1: yosys exit code = $rc"
 [ -f synth/mcu_blackboxes.v ] || { echo "F1: FAIL: blackbox stubs not written"; exit 1; }
 
 echo "F1: blackbox audit (allowed set: bootrom, sram)"
-python3 - "$LOG" <<'EOF'
+python3 - "$LOG" "$PDK_LIB" <<'EOF'
 import re, sys
 
 log_path = sys.argv[1]
-lib_path = '/home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib'
+lib_path = sys.argv[2]
 lib_cells = set()
 with open(lib_path) as f:
     for line in f:
@@ -67,7 +75,7 @@ defined = set(re.findall(r'^module\s+(\w+)', nl, re.M))
 used = set(re.findall(r'^\s*(?:\(\*\s*.*?\s*\*\)\s*)?(\w+)\s+\\?\w+\s*\(', nl, re.M))
 used -= {'module'}
 lib_cells = set()
-with open('/home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib') as f:
+with open(lib_path) as f:
     for line in f:
         mm = re.match(r'\s*cell\s*\(\s*(\w+)\s*\)', line)
         if mm:
@@ -97,7 +105,7 @@ echo "F1: cells=$CELLS area=${AREA} um^2"
 
 NET_SHA=$(sha256sum synth/mcu_netlist.v | awk '{print $1}')
 BB_SHA=$(sha256sum synth/mcu_blackboxes.v | awk '{print $1}')
-LIB_SHA=$(sha256sum /home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib | awk '{print $1}')
+LIB_SHA=$(sha256sum $PDK_LIB | awk '{print $1}')
 echo "F1: netlist sha256=$NET_SHA"
 echo "F1: blackbox-stub sha256=$BB_SHA"
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # tb_reset runner (A3): 3 seeded runs, N in {1,8,100}. Exits nonzero on failure.
 set -uo pipefail
-MMCU="$HOME/workspace/Muse-mcu"
+MMCU="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Icarus location (robust to VM replacement): prefer /usr/bin, fall back to local toolchain copy.
 IVL_BIN=""
 for _d in /usr/bin "$HOME/workspace/building-ai-computer/toolchains/icarus/deb/usr/bin"; do

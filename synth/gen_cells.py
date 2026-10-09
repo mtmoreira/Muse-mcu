@@ -14,10 +14,13 @@ model is pinned to the exact file the netlist was mapped against.
 """
 import argparse
 import hashlib
+import os
 import re
 import sys
 
-LIB_DEFAULT = "/home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib"
+LIB_DEFAULT = os.path.join(
+    os.environ.get("PDK_DIR", os.path.expanduser("~/workspace/pdk-dl/nangate45")),
+    "NangateOpenCellLibrary_typical.lib")
 
 
 def brace_block(text, start):

@@ -9,11 +9,12 @@ Reads acceptance/manifest.yaml (frozen_revision field) and checks:
 Exits 0 if frozen, nonzero otherwise. This is a consistency check, not a gate.
 """
 import hashlib
+import os
 import subprocess
 import sys
 import yaml
 
-ROOT = "/home/hatch/workspace/Muse-mcu"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def git(*args):

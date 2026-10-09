@@ -23,9 +23,11 @@ Usage: synth/gen_sdf.py [--lib PATH] [--net PATH] [--top NAME] [--out PATH]
 INSTANCE paths are written relative to --dut (default: dut), e.g.
 `cpu/_249_` for testbench `mcu_top dut`. SDF DIVIDER is `/`.
 """
-import argparse, hashlib, re, sys, datetime
+import argparse, hashlib, os, re, sys, datetime
 
-LIB_DEFAULT = "/home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib"
+LIB_DEFAULT = os.path.join(
+    os.environ.get("PDK_DIR", os.path.expanduser("~/workspace/pdk-dl/nangate45")),
+    "NangateOpenCellLibrary_typical.lib")
 
 
 def brace_block(text, start):

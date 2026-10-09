@@ -13,7 +13,9 @@ cd "$ROOT"
 
 APP="$1"; TEST="$2"; MARK="$3"; MINMARKS="$4"
 IRQPERIOD="${5:-0}"; TIMEOUT="${6:-60000000}"
-VLT=/home/hatch/workspace/tools/verilator-src/bin/verilator
+VLT="${VLT_BIN:-$(command -v verilator)}"
+[ -n "$VLT" ] || VLT=/home/hatch/workspace/tools/verilator-src/bin/verilator
+[ -x "$VLT" ] || { echo "verilator not found (set VLT_BIN)"; exit 1; }
 BIN=build/rtl_vlt/vobj_rtos/Vsim_top_rtl
 HEX="fw/build/$APP.hex"
 LOG="tb/logs/run_rtos_vlt_$APP.log"

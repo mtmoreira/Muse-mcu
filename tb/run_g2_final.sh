@@ -6,7 +6,9 @@
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-VLT=/home/hatch/workspace/tools/verilator-src/bin/verilator
+VLT="${VLT_BIN:-$(command -v verilator)}"
+[ -n "$VLT" ] || VLT=/home/hatch/workspace/tools/verilator-src/bin/verilator
+[ -x "$VLT" ] || { echo "verilator not found (set VLT_BIN)"; exit 1; }
 BIN=build/rtl_vlt/vobj_g2/Vsim_top_rtl
 HEX="fw/build/rtos_regtest.hex"
 # pxCurrentTCB not needed; x5 slot derived from live sp. Target PC = ecall in vRegTestAsm.
