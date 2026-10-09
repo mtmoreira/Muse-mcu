@@ -12,7 +12,7 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | A7 | UART RX (64 bytes) | PASS | results/raw/uart_rx.log | 64/64 bytes match in order, 2026-10-09 |
 | A8 | SPI master (256B) | PASS | results/raw/spi.log | 256/256, 0 violations, rerun 2026-10-09 |
 | A9 | Timer accuracy + GPIO | PENDING | results/raw/timer_gpio.log | Gates worker queued |
-| B1 | Register preservation | PENDING | tb/build/run_rtos_rtos_regtest.log | Gates worker running |
+| B1 | Register preservation | PASS | tb/build/run_rtos_rtos_regtest.log | 600 switches, 6 marks, 2026-10-09 |
 | B2 | Queues | PENDING | | Gates worker queued |
 | B3 | Semaphores/mutexes | PENDING | | Gates worker queued |
 | B4 | Task notifications | PENDING | | Gates worker queued |
