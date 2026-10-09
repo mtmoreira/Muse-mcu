@@ -28,7 +28,7 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | F3 | Gate-level preempt | PASS | results/f3_gate.json | 10/10 events, max 208cyc (bound 2000), Verilator, 2026-10-09 |
 | G1 | Fault: no tick | PASS | tb/logs/ | Fault active, checker rejects, 2026-10-09 |
 | G2 | Fault: ctx corrupt | PASS | results/raw/g2_fault_ctx.log | x5 slot derived from port SAVE (sp-112), store verified w/pattern, injected 0xdddddddd, TEST regtest FAIL at 443667cyc, 2026-10-09 |
-| G3 | Fault: UART corrupt | PASS | | Tamper detected, checker rejects, 2026-10-09 |
+| G3 | Fault: UART corrupt | PASS | results/raw/fault_uart_tampered.log, results/raw/fault_uart_check.log | Tampered stream REJECTED (25/24 pkts), 2026-10-09 |
 | R1 | Bootstrap | PASS | env/bootstrap.sh | Provisions pinned tools, 2026-10-09 |
 | R2 | make acceptance | PASS | Makefile, tools/run_acceptance.py | One-command runner, 2026-10-09 |
 | DEMO1 | Live demo | PASS | demo/run_demo.sh, results/demo_transcript.txt | Narrated feed, transcript saved, 2026-10-09 |

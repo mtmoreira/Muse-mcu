@@ -516,3 +516,40 @@ external interrupt exercising the MEI ISR notify path). Upstream
 Evidence: `results/b4_gate.json`, `tb/logs/run_rtos_vlt_rtos_notify.log`.
 Debug UART logs preserved: `tb/logs/b4_dbg_uart.log`, `b4_dbg2_uart.log`,
 `b4_dbg3_uart.log`. Commit 472a62e.
+
+---
+
+## 2026-10-09 ~09:30 PDT — final watchdog verification pass (finisher)
+
+**Scope:** verify every tracked PASS against its evidence file before the
+final acceptance report; only re-run gates whose evidence is missing or
+fails its PASS marker. Re-ran (all PASS, no changes needed):
+`tools/check_arch.py` (ARCH 45/45, exit 0, all DUT/Spike sig pairs
+byte-identical), `tools/check_app.py --uart results/raw/demo_uart.log
+--flash fw/build/flash.hex` (CHECK_APP: ALL PASS 24/24, exit 0, digests via
+hashlib), `tools/check_frozen.py` (PASS, frozen revision consistent).
+
+**G3 evidence cell:** `results/ACCEPTANCE_STATUS.md` listed G3 PASS with an
+empty evidence cell. Evidence confirmed as
+`results/raw/fault_uart_tampered.log` (duplicated PKT 3 injected) and
+`results/raw/fault_uart_check.log` (`CHECK_APP: FAIL (25/24 packets)`,
+checker REJECTED the tampered stream). Tracker cell filled in accordingly;
+verdict unchanged (fault active, checker rejects, not passed).
+
+**Untracked file cleanup:** `fw/app/notify_2task.c` was a 35-line throwaway
+2-task debug scratch from B4 debugging, unreferenced by any build script,
+doc, or runner. B4's PASS evidence is the full notify test (ops=514,
+40 MARKs), so the scratch was deleted, not committed. `git status --short`
+clean afterward.
+
+**B7:** stays BLOCKED, no weakening. Re-confirmed numbers from
+`results/raw/b7_blocktim_400M_uart.log` and
+`tb/logs/run_rtos_vlt_rtos_blocktim.log`: 48 events / 7950 ticks =
+0.006/tick, so 200 events need ~1.66B cycles, 27.6x over the 60M contract
+budget; upstream `blocktim.c` byte-identical; 0 errors. Owner options
+documented in `results/ACCEPTANCE_REPORT.md`.
+
+**Deliverable:** wrote `results/ACCEPTANCE_REPORT.md` (repo URL, branch,
+commit SHA, `make acceptance`, per-layer counts, 31-row verdict table,
+reuse-vs-new accounting, B7 options, push-blocked note). Commit locally;
+never pushed (no write credentials).
