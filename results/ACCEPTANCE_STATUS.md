@@ -9,7 +9,7 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | A4 | Trap behavior (8 cases) | PASS | tb/build/run_trap.log | 8/8, rerun 2026-10-09 |
 | A5 | Timer/ext interrupts | PASS | tb/build/run_irq.log | 20+4 events, rerun 2026-10-09 |
 | A6 | Memory map (40) | PASS | tb/build/run_memmap.log | 40/40, rerun 2026-10-09 |
-| A7 | UART RX (64 bytes) | PENDING | results/raw/uart_rx.log | Gates worker queued |
+| A7 | UART RX (64 bytes) | PASS | results/raw/uart_rx.log | 64/64 bytes match in order, 2026-10-09 |
 | A8 | SPI master (256B) | PASS | results/raw/spi.log | 256/256, 0 violations, rerun 2026-10-09 |
 | A9 | Timer accuracy + GPIO | PENDING | results/raw/timer_gpio.log | Gates worker queued |
 | B1 | Register preservation | PENDING | tb/build/run_rtos_rtos_regtest.log | Gates worker running |
