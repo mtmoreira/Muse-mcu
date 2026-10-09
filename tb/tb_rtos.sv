@@ -137,10 +137,11 @@ module tb_rtos;
     end
   end
 
-  // watchdog
+  // watchdog: while-loop (not repeat) so large timeouts don't hang Icarus
+  // during elaboration/scheduling. cycle_cnt tracks DUT cycles since reset.
   initial begin
     wait (!rst);
-    repeat (timeout_cyc) @(posedge clk);
+    while (!done && cycle_cnt < timeout_cyc) @(posedge clk);
     if (!done) begin
       $display("TB_RTOS %s: FAIL: timeout (marks=%0d pass=%0d)",
                testname, mark_count, pass_seen);

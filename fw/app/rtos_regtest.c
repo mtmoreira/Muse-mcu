@@ -94,26 +94,188 @@ void vRegTestHousekeeping( uint32_t ulIdx )
 
     if( ( ulTotal % REGTEST_MARK_EVERY ) == 0 )
     {
+        /* Atomic print: prevent tick preemption from interleaving bytes
+         * with another task's print. */
+        taskENTER_CRITICAL();
         uart_puts( "MARK regtest " );
         prvPutU32Dec( ulTotal );
         uart_puts( " ctxsw=" );
         prvPutU32Dec( ( uint32_t ) g_trace_ctxsw );
         uart_putc( '\n' );
+        taskEXIT_CRITICAL();
     }
 
     if( ( ulTotal >= REGTEST_SWITCHES_FOR_PASS ) && ( iPassDone == 0 ) )
     {
         iPassDone = 1;
+        taskENTER_CRITICAL();
         uart_puts( "TEST regtest PASS switches=" );
         prvPutU32Dec( ulTotal );
         uart_puts( " ctxsw=" );
         prvPutU32Dec( ( uint32_t ) g_trace_ctxsw );
         uart_putc( '\n' );
+        taskEXIT_CRITICAL();
         prvHalt();
     }
 }
 
 static volatile uint32_t ulRegTestFailReported = 0;
+
+/*-----------------------------------------------------------*/
+/* G2 fault-harness interface (contract with tb/tb_fault_ctx.sv).
+ * Compiled ONLY when G2_CTX_INSTRUMENT is defined (the G2 gate builds
+ * with `make -C fw APP=rtos_regtest G2=1`). The default B1 build is the
+ * standard firmware with no instrumentation.
+ */
+#ifdef G2_CTX_INSTRUMENT
+/* G2 fault-harness interface (contract with tb/tb_fault_ctx.sv).
+ *
+ * The B1 pass/fail logic above is untouched. For fault injection the
+ * testbench needs the SRAM address of the saved-x5 stack word and a
+ * marker after the restore:
+ *   "MARK ctxsave <8hex>"  SRAM byte address of the saved-x5 word,
+ *                          printed BEFORE the instrumented yield.
+ *   "MARK ctxrestored"     printed after the restore and the register
+ *                          verify (only when the verify passes).
+ *
+ * Address derivation (upstream port, byte-identical portASM.S): the trap
+ * handler runs portcontextSAVE_CONTEXT_INTERNAL, which does
+ *   addi sp, sp, -portCONTEXT_SIZE   (31*4 = 124 for RV32I, no FPU/VPU,
+ *                                    no chip-specific extra registers)
+ *   store_x x5, 3 * portWORD_SIZE(sp)
+ * so the saved x5 lands at (sp_at_ecall - 124 + 12) = sp_at_ecall - 112.
+ * In vRegTestG2Iter the ecall executes with the entry-adjusted sp, so the
+ * slot is (sp - 112) computed right after the stack frame is set up.
+ *
+ * Ordering note: the marker is printed before the fill/ecall on purpose.
+ * uart_putc returns once the byte is in the TX register; the '\n' then
+ * needs a full 10-bit frame (~4340 cycles at 50 MHz) before the tb's
+ * uart_sink delivers the completed line, while the fill+ecall+trap+save
+ * path is only a few hundred cycles. The tb therefore always observes
+ * the line (and injects) strictly after the port has saved x5.
+ */
+
+/* Non-static: referenced from inline asm; must survive --gc-sections. */
+uint32_t ulCtxSaveAddr = 0;
+
+static int iCtxSaveDone = 0;
+
+void vRegTestPrintCtxSave( void )
+{
+    uart_puts( "MARK ctxsave " );
+    puthex32( ulCtxSaveAddr );
+    uart_putc( '\n' );
+}
+
+void vRegTestPrintCtxRestored( void )
+{
+    uart_puts( "MARK ctxrestored\n" );
+}
+
+/* One instrumented iteration for task 0: print the ctxsave marker, fill,
+ * yield via ecall (full context save/restore), verify BEFORE any C call
+ * (x5 still holds the restored value), then print ctxrestored and do the
+ * normal housekeeping. Any register mismatch takes the same vRegTestFail
+ * path as the B1 checker. */
+__attribute__( ( naked ) ) static void vRegTestG2Iter( uint32_t ulIdx )
+{
+    __asm volatile
+    (
+        "addi sp, sp, -32\n"
+        "sw ra, 28(sp)\n"
+        "sw a0, 24(sp)\n"        /* task index */
+        /* saved-x5 slot = sp_at_ecall - 112 (see derivation above) */
+        "addi t0, sp, -112\n"
+        "la t1, ulCtxSaveAddr\n"
+        "sw t0, 0(t1)\n"
+        "call vRegTestPrintCtxSave\n"
+        /* t0 (x5) = ulRegTestPattern[idx]; kept in x5 across the ecall */
+        "lw a0, 24(sp)\n"
+        "la t0, ulRegTestPattern\n"
+        "slli a0, a0, 2\n"
+        "add t0, t0, a0\n"
+        "lw t0, 0(t0)\n"
+        /* fill x1,x6-x31 with the pattern (x5 holds pattern) */
+        "mv x1, t0\n"
+        "mv x6, t0\n"
+        "mv x7, t0\n"
+        "mv x8, t0\n"
+        "mv x9, t0\n"
+        "mv x10, t0\n"
+        "mv x11, t0\n"
+        "mv x12, t0\n"
+        "mv x13, t0\n"
+        "mv x14, t0\n"
+        "mv x15, t0\n"
+        "mv x16, t0\n"
+        "mv x17, t0\n"
+        "mv x18, t0\n"
+        "mv x19, t0\n"
+        "mv x20, t0\n"
+        "mv x21, t0\n"
+        "mv x22, t0\n"
+        "mv x23, t0\n"
+        "mv x24, t0\n"
+        "mv x25, t0\n"
+        "mv x26, t0\n"
+        "mv x27, t0\n"
+        "mv x28, t0\n"
+        "mv x29, t0\n"
+        "mv x30, t0\n"
+        "mv x31, t0\n"
+        "ecall\n"                /* yield: full context save/restore */
+        /* verify x1,x6-x31 == x5 (t0). x6 is checked FIRST, before t1
+           (which is x6) is used as the ID scratch. No C calls before
+           this point: x5 still holds the restored value. */
+        "bne x6, t0, 9f\n"
+        "li t1, 1\n"  "bne x1, t0, 8f\n"
+        "li t1, 7\n"  "bne x7, t0, 8f\n"
+        "li t1, 8\n"  "bne x8, t0, 8f\n"
+        "li t1, 9\n"  "bne x9, t0, 8f\n"
+        "li t1, 10\n" "bne x10, t0, 8f\n"
+        "li t1, 11\n" "bne x11, t0, 8f\n"
+        "li t1, 12\n" "bne x12, t0, 8f\n"
+        "li t1, 13\n" "bne x13, t0, 8f\n"
+        "li t1, 14\n" "bne x14, t0, 8f\n"
+        "li t1, 15\n" "bne x15, t0, 8f\n"
+        "li t1, 16\n" "bne x16, t0, 8f\n"
+        "li t1, 17\n" "bne x17, t0, 8f\n"
+        "li t1, 18\n" "bne x18, t0, 8f\n"
+        "li t1, 19\n" "bne x19, t0, 8f\n"
+        "li t1, 20\n" "bne x20, t0, 8f\n"
+        "li t1, 21\n" "bne x21, t0, 8f\n"
+        "li t1, 22\n" "bne x22, t0, 8f\n"
+        "li t1, 23\n" "bne x23, t0, 8f\n"
+        "li t1, 24\n" "bne x24, t0, 8f\n"
+        "li t1, 25\n" "bne x25, t0, 8f\n"
+        "li t1, 26\n" "bne x26, t0, 8f\n"
+        "li t1, 27\n" "bne x27, t0, 8f\n"
+        "li t1, 28\n" "bne x28, t0, 8f\n"
+        "li t1, 29\n" "bne x29, t0, 8f\n"
+        "li t1, 30\n" "bne x30, t0, 8f\n"
+        "li t1, 31\n" "bne x31, t0, 8f\n"
+        "j 7f\n"
+        "9:\n"                   /* x6 mismatch (t1 not yet set) */
+        "li t1, 6\n"
+        "8:\n"                   /* fail: t1 = reg number, t0 = expected */
+        "lw a0, 24(sp)\n"        /* idx */
+        "mv a1, t1\n"            /* reg */
+        "mv a2, t0\n"            /* expected */
+        "call vRegTestFail\n"    /* never returns */
+        "7:\n"
+        "call vRegTestPrintCtxRestored\n"
+        /* housekeeping (C call: outside the fill/verify region) */
+        "lw a0, 24(sp)\n"
+        "call vRegTestHousekeeping\n"
+        "lw ra, 28(sp)\n"
+        "addi sp, sp, 32\n"
+        "ret\n"
+        :
+        :
+        : "memory"
+    );
+}
+#endif /* G2_CTX_INSTRUMENT */
 
 /* Called from the assembly loop on any register mismatch. Never returns. */
 void vRegTestFail( uint32_t ulIdx, uint32_t ulReg, uint32_t ulExpected )
@@ -151,8 +313,24 @@ __attribute__( ( naked ) ) static void vRegTestAsm( uint32_t ulIdx,
 {
     __asm volatile
     (
-        "addi sp, sp, -32\n"
-        "sw ra, 28(sp)\n"
+        /* 80-byte frame: ra + s0-s11 (callee-saved, must be preserved
+         * per ABI) + a0 (idx) + a1 (iters). The fill/verify below tests
+         * that the context switch preserves s0-s11; they are restored
+         * to the caller's values before ret. */
+        "addi sp, sp, -80\n"
+        "sw ra, 76(sp)\n"
+        "sw s0, 72(sp)\n"
+        "sw s1, 68(sp)\n"
+        "sw s2, 64(sp)\n"
+        "sw s3, 60(sp)\n"
+        "sw s4, 56(sp)\n"
+        "sw s5, 52(sp)\n"
+        "sw s6, 48(sp)\n"
+        "sw s7, 44(sp)\n"
+        "sw s8, 40(sp)\n"
+        "sw s9, 36(sp)\n"
+        "sw s10, 32(sp)\n"
+        "sw s11, 28(sp)\n"
         "sw a0, 24(sp)\n"        /* task index */
         "sw a1, 20(sp)\n"        /* iterations remaining */
         "1:\n"
@@ -230,22 +408,34 @@ __attribute__( ( naked ) ) static void vRegTestAsm( uint32_t ulIdx,
         "call vRegTestFail\n"    /* never returns */
         "7:\n"
         /* housekeeping (C call: outside the fill/verify region) */
-        "lw ra, 28(sp)\n"
+        "lw ra, 76(sp)\n"
         "lw a0, 24(sp)\n"
         "call vRegTestHousekeeping\n"
         "lw a1, 20(sp)\n"
         "addi a1, a1, -1\n"
         "sw a1, 20(sp)\n"
         "bnez a1, 1b\n"
-        "lw ra, 28(sp)\n"
-        "addi sp, sp, 32\n"
+        /* restore callee-saved regs to caller's values, then return */
+        "lw s0, 72(sp)\n"
+        "lw s1, 68(sp)\n"
+        "lw s2, 64(sp)\n"
+        "lw s3, 60(sp)\n"
+        "lw s4, 56(sp)\n"
+        "lw s5, 52(sp)\n"
+        "lw s6, 48(sp)\n"
+        "lw s7, 44(sp)\n"
+        "lw s8, 40(sp)\n"
+        "lw s9, 36(sp)\n"
+        "lw s10, 32(sp)\n"
+        "lw s11, 28(sp)\n"
+        "lw ra, 76(sp)\n"
+        "addi sp, sp, 80\n"
         "ret\n"
         :
         :
         : "memory"
     );
 }
-
 /*-----------------------------------------------------------*/
 
 static void vRegTestTask( void * pvParameters )
@@ -259,6 +449,17 @@ static void vRegTestTask( void * pvParameters )
          * much faster than vTaskDelay(2) while still exercising the
          * tick-driven block/wake path. The 1 kHz tick also preempts. */
         vTaskDelay( 1 );
+#ifdef G2_CTX_INSTRUMENT
+        /* G2 fault-harness support: task 0 runs one instrumented
+         * fill/yield/verify iteration first (emits the MARK ctxsave /
+         * MARK ctxrestored pair the tb injects around). All other
+         * iterations use the standard B1 path. */
+        if( ( ulIdx == 0 ) && ( iCtxSaveDone == 0 ) )
+        {
+            iCtxSaveDone = 1;
+            vRegTestG2Iter( ulIdx );
+        }
+#endif
         vRegTestAsm( ulIdx, REGTEST_BATCH_ITERS );
     }
 }

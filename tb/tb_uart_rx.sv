@@ -133,18 +133,18 @@ module tb_uart_rx;
     while (!pass_seen) begin
       get_byte(b);
       stream.push_back(b);
-      // check trailing "TEST uart_rx PASS\n" (17 bytes)
-      if (stream.size() >= 17) begin
+      // check trailing "TEST uart_rx PASS\n" (18 bytes: 17 chars + newline)
+      if (stream.size() >= 18) begin
         n = stream.size();
-        if (stream[n-17] == "T" && stream[n-16] == "E" &&
-            stream[n-15] == "S" && stream[n-14] == "T" &&
-            stream[n-13] == " " && stream[n-12] == "u" &&
-            stream[n-11] == "a" && stream[n-10] == "r" &&
-            stream[n-9]  == "t" && stream[n-8]  == "_" &&
-            stream[n-7]  == "r" && stream[n-6]  == "x" &&
-            stream[n-5]  == " " && stream[n-4]  == "P" &&
-            stream[n-3]  == "A" && stream[n-2]  == "S" &&
-            stream[n-1]  == "S" && stream[n-0]  == 8'h0A)
+        if (stream[n-18] == "T" && stream[n-17] == "E" &&
+            stream[n-16] == "S" && stream[n-15] == "T" &&
+            stream[n-14] == " " && stream[n-13] == "u" &&
+            stream[n-12] == "a" && stream[n-11] == "r" &&
+            stream[n-10] == "t" && stream[n-9]  == "_" &&
+            stream[n-8]  == "r" && stream[n-7]  == "x" &&
+            stream[n-6]  == " " && stream[n-5]  == "P" &&
+            stream[n-4]  == "A" && stream[n-3]  == "S" &&
+            stream[n-2]  == "S" && stream[n-1]  == 8'h0A)
           pass_seen = 1;
       end
       if (stream.size() > 512)
