@@ -422,3 +422,55 @@ verify (`bne x6,t0`) failed → "TEST regtest FAIL: task 1 x6 expected dddddddd"
 at cycle 443667. G2: ALL PASS. Evidence: results/raw/g2_fault_ctx.log.
 Runner: tb/run_g2_final.sh (builds harness if missing, enforces clean B1
 firmware, checks ALL PASS + injection log + FAIL marker).
+
+## 2026-10-09: B4 (task notifications) — ROOT-CAUSED and PASS (was BLOCKED)
+
+**Prior state:** BLOCKED at 213/500 notifications. The earlier note attributed the
+stall to "the task-context demo (prvNotifiedTask) stalling in a later phase."
+That attribution was wrong.
+
+**Defect 1 (trace macros, fixed):** `fw/freertos/FreeRTOSConfig.h` defined
+`traceTASK_NOTIFY` but neither `traceTASK_NOTIFY_FROM_ISR` (tasks.c:8226) nor
+`traceTASK_NOTIFY_GIVE_FROM_ISR` (tasks.c:8360). The demo's `xNotifyTaskFromISR()`
+rotates through `vTaskNotifyGiveFromISR` / `xTaskNotifyFromISR` /
+`xTaskNotifyAndQueryFromISR`. The give path had no counting macro at all and was
+invisible to the op counter. (Correction to the handoff: the other two ISR APIs
+were already counted via the pre-existing `traceRETURN_xTaskGenericNotifyFromISR`
+(tasks.c:8305); the "ISR notifications invisible" claim was only true for
+`vTaskNotifyGiveFromISR`, 1/3 of the rotating ISR gives.) Fix: added both macros
+(`g_trace_notify_isr++`) and removed the redundant `traceRETURN_xTaskGenericNotifyFromISR`
+so each ISR notify counts exactly once (it fires on the same
+`xTaskGenericNotifyFromISR` path; keeping both would double-count).
+
+**Defect 2 (isolated, fixed in app wiring):** Built a debug copy of the upstream
+demos (`fw/app/dbg_TaskNotify.c`, `fw/app/dbg_TaskNotifyArray.c`, throwaway, since
+deleted) with UART MARKs at phase boundaries, plus a temporary per-demo check
+report in the check task (reverted). Findings:
+- TaskNotify demo: HEALTHY. `prvSingleTaskTests` completes (including the
+  suspend/resume timer test), main loop iterates, `ulNotifyCycleCount` increments.
+- TaskNotifyArray demo: HEALTHY but its still-running check reported FAIL from
+  the very first evaluation (`MARK dbg check n=1 a=0`). Root cause: the array
+  demo's `prvSingleTaskTests()` blocks 3x100 ticks before its first
+  `ulFineCycleCount++` (line 726), while our check task evaluated
+  `xAreTaskNotificationArrayTasksStillRunning()` at tick 200. That demo's
+  `xErrorStatus` is a static latch: one premature no-progress observation fails
+  it permanently, even though the demo then proceeds correctly (observed
+  `arr-single-done`, `arr-susp-done` in the debug UART).
+- So the "stall" was never a demo stall: it was the app check task failing a
+  healthy demo on startup, then halting (`TEST notify FAIL: demo check`).
+- Fix (app wiring only, `fw/app/rtos_notify.c`): the check task skips
+  still-running evaluations for the first 1000 ticks (`NOTIFY_STALL_GRACE_TICKS`),
+  comfortably past both demos' initial phases. Genuine stalls are still caught
+  (5-strike/1000-tick detector arms after the grace period).
+
+**Also:** `tb/rtl_vlt/tb_rtos_vlt.cpp` gains `+uartlog=<file>` (raw UART line dump;
+used for the debug isolation). The pre-existing `mark_value` DIAG print was left
+as-is.
+
+**Result:** B4 PASS. `TEST notify PASS ops=514` (firmware), 40 MARK notify lines,
+0 errors, ~100M cycles, Verilator 5.032 RTL backend, `+irqperiod=50000` (tb-driven
+external interrupt exercising the MEI ISR notify path). Upstream
+`TaskNotify.c`/`TaskNotifyArray.c` remain byte-identical (md5 verified).
+Evidence: `results/b4_gate.json`, `tb/logs/run_rtos_vlt_rtos_notify.log`.
+Debug UART logs preserved: `tb/logs/b4_dbg_uart.log`, `b4_dbg2_uart.log`,
+`b4_dbg3_uart.log`. Commit 472a62e.
