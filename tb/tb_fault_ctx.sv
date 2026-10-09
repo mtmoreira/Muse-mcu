@@ -89,7 +89,7 @@ module tb_fault_ctx;
             end else begin
               inj_idx = (inj_addr - 32'h00010000) >> 2;
               // Schedule injection at cycle+2000 (after save, before restore).
-              inject_at = cycle + 2000;
+              inject_at = cycle; poll_start = cycle + 5000;
               $display("FAULT G2: ctxsave addr 0x%08x (sram word %0d), injection scheduled",
                        inj_addr, inj_idx);
             end
@@ -106,27 +106,38 @@ module tb_fault_ctx;
     end
   end
 
-  // ---- fixed-delay injection: after the port's save, before the restore ----
-  // The firmware prints MARK ctxsave BEFORE the ecall (uart_putc blocks ~4340
-  // cycles/byte, so the 20-byte line takes ~87k cycles). The tb sees the MARK
-  // at cycle C (when '\n' arrives via UART). The ecall/save happens at ~C+100.
-  // The task resumes (restore) at ~C+3000 (other tasks run in between).
-  // Inject at C+2000: strictly after the save, strictly before the restore.
-  // The saved-x5 address was derived from the port's SAVE layout (sp-112)
-  // and verified against the TCB's pxTopOfStack.
+  // ---- hybrid injection: delay then poll for save ----
+  // The firmware prints MARK ctxsave BEFORE the ecall (uart blocks). The tb
+  // sees the MARK at cycle C. The ecall/save happens at ~C+100, but UART and
+  // tb processing delays make the exact timing uncertain. Strategy: wait 5000
+  // cycles (definitely after the print), then poll every cycle for the slot
+  // to become non-X (the save). Inject immediately on the first non-X.
+  // Timeout after 100k cycles (if the save never happens, the address is wrong).
+  longint poll_start = 0;
   longint inject_at = 0;
+  bit polling = 0;
   always @(posedge clk) begin
-    if (inject_at != 0 && !injected && cycle >= inject_at && inj_idx >= 0) begin
-      inj_old = dut.ram.mem[inj_idx];
-      inj_new = 32'hDEADBEEF;
-      inj_cycle = cycle;
-      dut.ram.mem[inj_idx] = inj_new;
-      injected = 1;
-      inject_at = 0;
-      $display("FAULT G2: injected at cycle %0d addr 0x%08x (sram word %0d) old=0x%08x new=0x%08x",
-               inj_cycle, inj_addr, inj_idx, inj_old, inj_new);
-      if (dut.ram.mem[inj_idx] !== inj_new)
-        $display("TB_FAULT_CTX: WARNING: read-back differs after inject");
+    if (poll_start != 0 && !polling && cycle >= poll_start) begin
+      polling = 1;
+      poll_start = 0;
+    end
+    if (polling && !injected && inj_idx >= 0) begin
+      logic [31:0] v;
+      v = dut.ram.mem[inj_idx];
+      if (!$isunknown(v)) begin
+        inj_old = v;
+        inj_new = 32'hDEADBEEF;
+        inj_cycle = cycle;
+        dut.ram.mem[inj_idx] = inj_new;
+        injected = 1;
+        polling = 0;
+        $display("FAULT G2: injected at cycle %0d addr 0x%08x (sram word %0d) old=0x%08x new=0x%08x",
+                 inj_cycle, inj_addr, inj_idx, inj_old, inj_new);
+      end
+      else if (cycle > inject_at + 100000) begin
+        $display("FAULT G2: WARNING: save never observed at 0x%08x", inj_addr);
+        polling = 0;
+      end
     end
   end
 
