@@ -1,0 +1,471 @@
+# Muse MCU — acceptance contract (machine-readable)
+# Status: PROPOSED (owner approval required before implementation)
+contract_version: 1.0.0
+status: APPROVED
+approval: { by: owner, date: 2026-10-08, note: "approved with DEMO-1 (human-watchable end-to-end demo) added" }
+target_repo: https://github.com/mtmoreira/Muse-mcu
+work_branch: work/mcu-acceptance-v1
+
+frozen_design:
+  isa: { base: RV32I, extensions: [Zicsr], priv_modes: [M] }
+  microarch: single-cycle, CPI=1, direct-mtvec-only
+  clock_hz: 50000000
+  rtl_revision: TBD  # set at approval; any RTL change bumps it and reruns affected gates
+
+tool_versions:
+  riscv_gcc: xpack-riscv-none-elf-gcc-15.2.0-1   # local tarball, sha256 pinned at impl
+  simulator: icarus-verilog-12.0                 # primary; per-run backend recorded
+  synth: yosys-0.33
+  stdcell: NangateOpenCellLibrary typical        # local, sha256 pinned at impl
+  python: ">=3.10"
+
+# Timeout semantics: sim_cycles = simulated DUT cycles (deterministic);
+# host = wall-clock limit for the step on the reference VM. Missing results,
+# zero exercised events, crashes, or skipped required cases are FAIL, never pass.
+
+requirements:
+  # ---------------- Layer A: CPU and platform (runs_on: rtl) ----------------
+  - id: A1
+    layer: A
+    title: RV32I architectural tests
+    behavior: All 39 riscv-arch-test RV32I user-mode cases execute on the RTL CPU.
+    checker: { type: upstream, repo: riscv/riscv-arch-test, rev: PIN_AT_IMPL,
+               path: tests/rv32i/I, adaptation: "unmodified .S; new thin RVTEST macro shim + linker script (documented)" }
+    stimulus: per-test ELF run from reset on the MCU testbench
+    expected: { source: "riscv-isa-sim (Spike) golden signatures, same ELF, same memory map", value: "byte-exact signature match" }
+    observe: signature region captured by testbench at test end
+    pass: 39/39 signatures match; any mismatch is FAIL
+    min_exercises: 39
+    timeout: { sim_cycles: 2000000, host: 60min, scope: whole-suite }
+    runs_on: rtl
+    exclusions: none for RV32I
+
+  - id: A2
+    layer: A
+    title: Zicsr architectural tests
+    behavior: All 6 riscv-arch-test Zicsr cases execute on the RTL CPU.
+    checker: { type: upstream, repo: riscv/riscv-arch-test, rev: PIN_AT_IMPL,
+               path: tests/rv32i/Zicsr, adaptation: same shim as A1 }
+    stimulus: per-test ELF run from reset
+    expected: { source: "Spike golden signatures", value: "byte-exact signature match" }
+    observe: signature region captured by testbench
+    pass: 6/6 signatures match
+    min_exercises: 6
+    timeout: { sim_cycles: 2000000, host: 15min, scope: whole-suite }
+    runs_on: rtl
+    exclusions: none for Zicsr
+
+  - id: A3
+    layer: A
+    title: Reset and startup behavior
+    behavior: "After reset assertion of N cycles, PC==0x00000000, all CSRs/regs at defined reset values, first fetch retires the reset-vector instruction."
+    checker: { type: custom, path: tb/tb_reset.sv }
+    stimulus: reset held for N in {1, 8, 100} cycles across 3 seeded runs (seeds 1,2,3)
+    expected: { source: "architecture.md section 2", value: "PC=0, mstatus=0, mie=0, mtvec=0, regfile=0" }
+    observe: PC and CSR values sampled on reset release + first 16 retired instructions
+    pass: all 3 variants meet expected values; any X on architectural state is FAIL
+    min_exercises: 3
+    timeout: { sim_cycles: 100000, host: 10min }
+    runs_on: rtl
+    assumptions: "Icarus 4-state; X-handling limits disclosed in arch doc section 9"
+
+  - id: A4
+    layer: A
+    title: Trap behavior (synchronous exceptions)
+    behavior: "illegal instruction, ecall, ebreak, misaligned LW/SW/LH/SH and fetch from unmapped address each trap to mtvec with correct mcause/mepc/mtval; mret resumes."
+    checker: { type: custom, path: tb/tb_trap.sv }
+    stimulus: 8 directed trap cases from reset
+    expected: { source: "RISC-V privileged spec, M-mode", value: "mcause/mepc/mtval per case; MTVEC direct" }
+    observe: CSR values in trap handler + resumed PC
+    pass: 8/8 cases correct
+    min_exercises: 8
+    timeout: { sim_cycles: 500000, host: 10min }
+    runs_on: rtl
+
+  - id: A5
+    layer: A
+    title: Timer and external interrupt delivery
+    behavior: "MTI fires when mtime>=mtimecmp; MEI fires from each aggregator source; mip bits set; handler runs with MIE cleared (no nesting); pending cleared by handler."
+    checker: { type: custom, path: tb/tb_irq.sv }
+    stimulus: programmed mtimecmp values; tb-driven pulses on each MEI source
+    expected: { source: "RISC-V privileged spec + memory map", value: "IRQ observed within 100 cycles of stimulus; mip reflects source" }
+    observe: trap handler entry log + mip/mie sampling
+    pass: ">=20 timer IRQs and >=4 external IRQs (one per source) observed, all serviced"
+    min_exercises: 24
+    timeout: { sim_cycles: 5000000, host: 15min }
+    runs_on: rtl
+
+  - id: A6
+    layer: A
+    title: Memory map and access widths
+    behavior: "Byte/half/word accesses to ROM/RAM/MMIO at aligned and boundary addresses return correct data; unmapped access traps; ROM writes are dropped."
+    checker: { type: custom, path: tb/tb_memmap.sv }
+    stimulus: 40 directed transactions incl. region boundaries and last-byte addresses
+    expected: { source: "memory map in architecture.md section 3", value: "data-correct or trap per case" }
+    observe: bus responses + trap log
+    pass: 40/40 correct
+    min_exercises: 40
+    timeout: { sim_cycles: 200000, host: 10min }
+    runs_on: rtl
+
+  - id: A7
+    layer: A
+    title: UART RX from external source
+    behavior: "Testbench drives the RX pin with 64 bytes (incl. 0x00, 0xFF, 0x55, 0xAA) at 115200 8N1; firmware reads via RX register and echoes to TX; checker compares."
+    checker: { type: custom, path: "tb/tb_uart_rx.sv + fw app uart_rx_test.c" }
+    stimulus: external bit-accurate RX waveform from testbench
+    expected: { source: "transmitted byte sequence (host-generated)", value: "echoed bytes identical and in order" }
+    observe: UART TX pin captured by SV sink
+    pass: 64/64 bytes match
+    min_exercises: 64
+    timeout: { sim_cycles: 5000000, host: 15min }
+    runs_on: rtl
+
+  - id: A8
+    layer: A
+    title: SPI master read against flash model
+    behavior: "SPI0 reads 256 bytes from the flash model via 0x03 READ; mode 0, MSB-first; CS asserted only during transfer; SCK idle low."
+    checker: { type: custom, path: "tb/tb_spi.sv; model=YosysHQ/picorv32 picosoc/spiflash.v @ pinned rev, unmodified" }
+    stimulus: firmware SPI driver reads; flash preloaded with PRBS pattern
+    expected: { source: "preloaded flash image (host-generated PRBS)", value: "256/256 bytes match; protocol assertions hold" }
+    observe: SPI pins (protocol assertions) + rxdata register
+    pass: data match and zero protocol-assertion violations
+    min_exercises: 256
+    timeout: { sim_cycles: 2000000, host: 15min }
+    runs_on: rtl
+    assumptions: "spiflash.v qualified at impl: 0x03 READ supported, mode 0, CS-high deselect, power-on ready; checklist recorded"
+
+  - id: A9
+    layer: A
+    title: Timer accuracy and GPIO
+    behavior: "1000 timer ticks counted against core cycles (1 kHz at 50 MHz => 50000 cycles/tick, tolerance +-1); GPIO dir/out/in loopback via testbench."
+    checker: { type: custom, path: "tb/tb_timer_gpio.sv + fw app" }
+    stimulus: free-running timer; tb drives GPIO inputs
+    expected: { source: "clock_hz and tick rate in FreeRTOSConfig", value: "tick period 50000 +-1 cycles; GPIO reads match driven values" }
+    observe: tick counter register + GPIO pins
+    pass: 1000/1000 ticks in tolerance; 16/16 GPIO patterns correct
+    min_exercises: 1016
+    timeout: { sim_cycles: 60000000, host: 20min }
+    runs_on: rtl
+
+  # ---------------- Layer B: FreeRTOS integration (runs_on: rtl) ----------------
+  # Each group: upstream Demo/Common/Minimal source adapted to the platform
+  # (adaptation = platform main/tasks wiring only; test logic unmodified).
+  # Firmware self-checks + testbench progress supervision (markers, no zero-event pass).
+  - id: B1
+    layer: B
+    title: Register preservation across context switches
+    behavior: "Tasks fill all 32 integer registers with known patterns, block/yield repeatedly; on resume every register is verified."
+    checker: { type: custom, path: "fw/app/rtos_regtest.c (covers the template's register-test requirement; no upstream RISC-V regtest exists)", adaptation: "new" }
+    stimulus: 3 tasks x patterns, 1 kHz tick preemption + voluntary yields
+    expected: { source: "patterns generated in-task", value: "zero mismatches" }
+    observe: firmware error counter + testbench task-transition markers
+    pass: ">=500 context switches observed, 0 mismatches; firmware prints REGTEST PASS"
+    min_exercises: 500
+    timeout: { sim_cycles: 30000000, host: 20min }
+    runs_on: rtl
+
+  - id: B2
+    layer: B
+    title: Queues, blocking and timeouts
+    behavior: "Producers/consumers with blocking send/receive, timeouts, peek; adapted BlockQ/GenQTest/QPeek/PollQ."
+    checker: { type: upstream, repo: FreeRTOS/FreeRTOS, rev: main-PIN_AT_IMPL,
+               path: "FreeRTOS/Demo/Common/Minimal/{BlockQ,GenQTest,QPeek,PollQ}.c",
+               adaptation: "platform wiring only" }
+    stimulus: tasks as per upstream demos, 1 kHz tick
+    expected: { source: "upstream demo self-check logic", value: "no error flags" }
+    observe: firmware check counters + tb progress markers
+    pass: ">=2000 queue ops, 0 errors, firmware prints QUEUE PASS"
+    min_exercises: 2000
+    timeout: { sim_cycles: 60000000, host: 20min }
+    runs_on: rtl
+
+  - id: B3
+    layer: B
+    title: Semaphores and mutexes
+    behavior: "Binary/counting semaphores, recursive mutex incl. priority-inheritance spot check; adapted semtest/countsem/recmutex."
+    checker: { type: upstream, repo: FreeRTOS/FreeRTOS, rev: main-PIN_AT_IMPL,
+               path: "FreeRTOS/Demo/Common/Minimal/{semtest,countsem,recmutex}.c",
+               adaptation: "platform wiring only" }
+    stimulus: tasks as per upstream demos
+    expected: { source: "upstream demo self-check logic", value: "no error flags" }
+    observe: firmware check counters + tb progress markers
+    pass: ">=1000 ops, 0 errors, firmware prints SEMA PASS"
+    min_exercises: 1000
+    timeout: { sim_cycles: 60000000, host: 20min }
+    runs_on: rtl
+
+  - id: B4
+    layer: B
+    title: Task notifications (task and ISR)
+    behavior: "Direct-to-task notifications incl. from ISR context; adapted TaskNotify/TaskNotifyArray."
+    checker: { type: upstream, repo: FreeRTOS/FreeRTOS, rev: main-PIN_AT_IMPL,
+               path: "FreeRTOS/Demo/Common/Minimal/{TaskNotify,TaskNotifyArray}.c",
+               adaptation: "platform wiring only" }
+    stimulus: tasks + tb-driven external interrupt for the ISR path
+    expected: { source: "upstream demo self-check logic", value: "no error flags" }
+    observe: firmware check counters + tb progress markers
+    pass: ">=500 notifications, 0 errors, firmware prints NOTIFY PASS"
+    min_exercises: 500
+    timeout: { sim_cycles: 60000000, host: 20min }
+    runs_on: rtl
+
+  - id: B5
+    layer: B
+    title: Software timers
+    behavior: "One-shot and auto-reload timers; adapted TimerDemo."
+    checker: { type: upstream, repo: FreeRTOS/FreeRTOS, rev: main-PIN_AT_IMPL,
+               path: FreeRTOS/Demo/Common/Minimal/TimerDemo.c, adaptation: "platform wiring only" }
+    stimulus: timers created/started/reset as per demo
+    expected: { source: "upstream demo self-check logic", value: "no error flags" }
+    observe: firmware check counters + tb progress markers
+    pass: ">=200 timer expiries, 0 errors, firmware prints TIMER PASS"
+    min_exercises: 200
+    timeout: { sim_cycles: 60000000, host: 20min }
+    runs_on: rtl
+
+  - id: B6
+    layer: B
+    title: ISR-to-task signaling
+    behavior: "External interrupt (tb-driven) gives a semaphore / sends to a queue from the ISR; task unblocks; adapted IntQueue/IntSemTest."
+    checker: { type: upstream, repo: FreeRTOS/FreeRTOS, rev: main-PIN_AT_IMPL,
+               path: "FreeRTOS/Demo/Common/Minimal/{IntQueue,IntSemTest}.c",
+               adaptation: "platform wiring: tb IRQ line mapped to MEI source" }
+    stimulus: periodic tb IRQ pulses
+    expected: { source: "upstream demo self-check logic", value: "no error flags; no lost wakeups" }
+    observe: firmware check counters + tb progress markers
+    pass: ">=200 ISR-to-task handoffs, 0 errors, firmware prints ISRTEST PASS"
+    min_exercises: 200
+    timeout: { sim_cycles: 60000000, host: 20min }
+    runs_on: rtl
+
+  - id: B7
+    layer: B
+    title: Blocking with timeouts
+    behavior: "Tasks block with timeouts and wake in expected order/timing; adapted blocktim."
+    checker: { type: upstream, repo: FreeRTOS/FreeRTOS, rev: main-PIN_AT_IMPL,
+               path: FreeRTOS/Demo/Common/Minimal/blocktim.c, adaptation: "platform wiring only" }
+    stimulus: tasks as per upstream demo
+    expected: { source: "upstream demo self-check logic", value: "no error flags" }
+    observe: firmware check counters + tb progress markers
+    pass: ">=200 timeout events, 0 errors, firmware prints BLOCKTIM PASS"
+    min_exercises: 200
+    timeout: { sim_cycles: 60000000, host: 20min }
+    runs_on: rtl
+
+  # ---------------- Layer C: observable preemption (runs_on: rtl) ----------------
+  - id: C1
+    layer: C
+    title: Preemption latency bound
+    behavior: "Higher-priority task blocked on a queue becomes ready (via ISR) while a lower-priority task computes without yielding/blocking; the HP task's first instruction retires within the bound."
+    checker: { type: custom, path: "tb/tb_preempt.sv + fw app preempt_test.c" }
+    stimulus: LP compute loop; periodic ISR unblocks HP task
+    expected: { source: "bound fixed pre-trace (arch doc section 10)", value: "<=2000 core cycles from ISR entry to HP first retired instruction" }
+    observe: "architectural trace: ISR-entry cycle stamp, HP-task PC retirement (not GPIO labels)"
+    pass: ">=50 preemption events, all within bound; context preservation covered by B1"
+    min_exercises: 50
+    timeout: { sim_cycles: 60000000, host: 30min }
+    runs_on: rtl
+
+  # ---------------- Layer D: end-to-end application (runs_on: rtl) ----------------
+  - id: D1
+    layer: D
+    title: SPI -> queue -> SHA-256 -> UART end-to-end
+    behavior: "Acquisition task reads framed messages from SPI flash into a queue (depth 4); SHA task computes SHA-256 in firmware and transmits (magic, id, len, digest) packets on UART TX; background task computes continuously."
+    checker: { type: custom, path: "tb/tb_app.sv (SV UART sink) + tools/check_app.py (host)" }
+    stimulus: "24 messages: fixed lengths {0,1,55,56,57,63,64,65,119,120,127,128,129,255,512,1024} + 8 host-generated (seed from flash header, firmware frozen first)"
+    expected: { source: "Python hashlib.sha256 on the same input bytes (host-generated after firmware freeze); NIST vectors for the embedded self-test", value: "packet count, sequence, ids, lengths and digests all match" }
+    observe: "UART TX pin (external sink); SPI pins; queue depth watermark register"
+    pass: "24/24 packets correct and in order; queue blocked at least once (watermark>=depth proves pressure); background task preempted and resumed (trace)"
+    min_exercises: 24
+    timeout: { sim_cycles: 100000000, host: 90min }
+    runs_on: rtl
+    assumptions: "expected digests in host checker only, never in MCU memory"
+
+  - id: D2
+    layer: D
+    title: Firmware SHA-256 self-test at boot
+    behavior: "Before the app starts, firmware self-tests its SHA-256 against 8 NIST byte-oriented vectors (incl. empty, 'abc', 55/56/64-byte and multi-block)."
+    checker: { type: custom, path: "fw/app/sha_selftest.c; vectors from NIST shabytetestvectors.zip @ pinned sha256" }
+    stimulus: boot
+    expected: { source: "NIST CAVP byte-oriented vectors", value: "8/8 digests match" }
+    observe: firmware self-test report on UART TX
+    pass: "firmware prints SHA SELFTEST PASS; any mismatch aborts boot with error marker"
+    min_exercises: 8
+    timeout: { sim_cycles: 20000000, host: 15min }
+    runs_on: rtl
+
+  # ---------------- Layer E: reusability ----------------
+  - id: E1
+    layer: E
+    title: Frozen platform revision
+    behavior: "All gates A-D run on one frozen RTL revision; any RTL fix creates a new revision and reruns affected gates plus the full D1 suite."
+    checker: { type: custom, path: tools/check_frozen.py }
+    stimulus: git revision recorded per run
+    expected: { source: "this manifest", value: "single rtl_revision across all evidence artifacts" }
+    observe: manifest run records
+    pass: "all result artifacts reference the same rtl_revision; no application-specific RTL changes exist in the diff"
+    min_exercises: 1
+    timeout: { host: 5min }
+    runs_on: host
+
+  # ---------------- Layer F: synthesis and gate-level (runs_on: netlist) ----------------
+  - id: F1
+    layer: F
+    title: Open-source synthesis
+    behavior: "Yosys 0.33 synthesizes the full platform (CPU + all peripherals + bus) against Nangate45 typical; no blackboxes except declared SRAM/ROM behavioral models."
+    checker: { type: custom, path: synth/mcu.ys }
+    stimulus: RTL sources at frozen revision
+    expected: { source: "Yosys reports", value: "0 unresolved blackboxes besides declared memories; netlist hash recorded" }
+    observe: yosys log + netlist
+    pass: "synth completes; blackbox check passes; netlist committed with hash"
+    min_exercises: 1
+    timeout: { host: 60min }
+    runs_on: host
+
+  - id: F2
+    layer: F
+    title: Gate-level application subset
+    behavior: "D1 workload subset (4 messages: 0, 56, 64, 1024 bytes) runs on the synthesized netlist; UART packets verified by the host checker."
+    checker: { type: custom, path: "tb/tb_app.sv (gate build) + tools/check_app.py" }
+    stimulus: same as D1, 4-message subset
+    expected: { source: "Python hashlib", value: "4/4 packets correct, in order" }
+    observe: UART TX pin of the gate-level model
+    pass: 4/4 correct
+    min_exercises: 4
+    timeout: { sim_cycles: 50000000, host: 120min }
+    runs_on: netlist
+    assumptions: "zero-delay gate simulation, labeled as such; behavioral SRAM/ROM models declared"
+
+  - id: F3
+    layer: F
+    title: Gate-level RTOS preemption
+    behavior: "C1 preemption test runs on the synthesized netlist with the same 2000-cycle bound."
+    checker: { type: custom, path: "tb/tb_preempt.sv (gate build)" }
+    stimulus: same as C1
+    expected: { source: "arch doc section 10", value: "<=2000 core cycles ISR entry to HP first retired instruction" }
+    observe: gate-level trace (PC + ISR markers)
+    pass: ">=10 events, all within bound"
+    min_exercises: 10
+    timeout: { sim_cycles: 30000000, host: 120min }
+    runs_on: netlist
+    assumptions: "zero-delay gate simulation, labeled as such"
+
+  # ---------------- Fault injection (runs_on: rtl) ----------------
+  - id: G1
+    layer: FAULT
+    title: Negative — timer interrupt suppression
+    behavior: "After 1000 ticks, the testbench suppresses MTI; the unchanged acceptance checker must reject the run."
+    checker: { type: custom, path: "tb/tb_fault_notick.sv (reuses B2 firmware image + checker, unmodified)" }
+    stimulus: MTI gated off at tick 1000
+    expected: { source: "fault plan", value: "run rejected: tick counter stalls, watchdog fires, nonzero exit" }
+    observe: tick log (stall point) + checker verdict
+    pass: "fault provably active (stall observed) AND checker reports FAIL"
+    min_exercises: 1
+    timeout: { sim_cycles: 30000000, host: 20min }
+    runs_on: rtl
+
+  - id: G2
+    layer: FAULT
+    title: Negative — corrupted task context
+    behavior: "Testbench flips one word of a saved register in the HP task context before restore; the B1 checker must catch the mismatch."
+    checker: { type: custom, path: "tb/tb_fault_ctx.sv (reuses B1 firmware + checker, unmodified)" }
+    stimulus: single-bit flip in saved x5 of HP task context
+    expected: { source: "fault plan", value: "B1 checker reports register mismatch, nonzero exit" }
+    observe: injection log (time, address, old/new) + checker verdict
+    pass: "fault provably active (injection logged and context read-back differs) AND checker reports FAIL"
+    min_exercises: 1
+    timeout: { sim_cycles: 30000000, host: 20min }
+    runs_on: rtl
+
+  - id: G3
+    layer: FAULT
+    title: Negative — corrupted/duplicated UART packet
+    behavior: "Testbench corrupts one digest nibble and duplicates one packet on the UART TX stream; the host checker must reject."
+    checker: { type: custom, path: "tb/tb_fault_uart.sv + tools/check_app.py (unmodified)" }
+    stimulus: D1 24-message workload with stream tampering
+    expected: { source: "fault plan", value: "checker reports digest mismatch and sequence error, nonzero exit" }
+    observe: tamper log + checker verdict
+    pass: "fault provably active (tamper logged on the wire) AND checker reports FAIL"
+    min_exercises: 1
+    timeout: { sim_cycles: 100000000, host: 90min }
+    runs_on: rtl
+
+  # ---------------- Reproducibility & reporting ----------------
+  - id: R1
+    layer: REPRO
+    title: One-command bootstrap
+    behavior: "`env/bootstrap.sh` provisions all pinned tools on a clean Ubuntu 24.04 host."
+    checker: { type: custom, path: env/bootstrap.sh }
+    stimulus: clean container/VM
+    expected: { source: "tool_versions above", value: "gcc/iverilog/yosys report pinned versions; versions recorded" }
+    observe: bootstrap log
+    pass: bootstrap exits 0 and version check passes
+    min_exercises: 1
+    timeout: { host: 120min }
+    runs_on: host
+
+  - id: R2
+    layer: REPRO
+    title: One-command acceptance run
+    behavior: "`make acceptance` executes every mandatory gate and returns nonzero on any failure or incompleteness; `make smoke` is the labeled fast subset."
+    checker: { type: custom, path: "Makefile + tools/run_acceptance.py (parses this manifest)" }
+    stimulus: frozen RTL revision
+    expected: { source: "this manifest", value: "exit 0 only if every requirement is PASS; results/machine-readable + human report generated" }
+    observe: results/ artifacts
+    pass: "runner enforces min_exercises and timeouts; skipped/blocked requirements are reported, never passed"
+    min_exercises: 1
+    timeout: { host: 480min }
+    runs_on: host
+
+  # ---------------- Demo (human-watchable) ----------------
+  - id: DEMO1
+    layer: DEMO
+    title: End-to-end application demonstration
+    behavior: "Scripted demo runs the frozen D1 application image with a live narrated console feed: every SPI message read, queue handoff, SHA-256 digest, UART packet and preemption event is printed as it happens; the host checker verifies each digest on the fly."
+    checker: { type: custom, path: "demo/run_demo.sh (tb/tb_app.sv with live console feed + tools/check_app.py)" }
+    stimulus: D1 24-message workload, seeded flash image
+    expected: { source: "Python hashlib (same oracle as D1)", value: "24/24 packets verified live; transcript ends with DEMO PASS" }
+    observe: console transcript + VCD trace (source for FIG2)
+    pass: "demo completes; transcript shows 24/24 messages processed with verified digests; transcript saved to results/demo_transcript.txt"
+    min_exercises: 24
+    timeout: { sim_cycles: 100000000, host: 90min }
+    runs_on: rtl
+    note: "Informational demonstration, not a substitute for D1; a demo failure is an app failure."
+
+  # ---------------- Figures ----------------
+  - id: FIG1
+    layer: DOC
+    title: Architecture figure
+    behavior: "Plain technical figure of the actual MCU architecture and software stack with functional interfaces labeled."
+    checker: { type: custom, path: doc/gen_arch_fig.py }
+    stimulus: RTL metadata (module list, memory map)
+    expected: { source: "this spec", value: "labels match the implemented interfaces; no invented blocks" }
+    observe: doc/fig_arch.png
+    pass: "figure regenerates from metadata; reviewed against RTL"
+    min_exercises: 1
+    timeout: { host: 10min }
+    runs_on: host
+
+  - id: FIG2
+    layer: DOC
+    title: Trace figure
+    behavior: "Real captured trace showing SPI input, task execution/preemption and UART output, with a readable preemption detail view."
+    checker: { type: custom, path: doc/gen_trace_fig.py }
+    stimulus: VCD/FST from the D1 run
+    expected: { source: "recorded trace", value: "signal definitions, time units and provenance labeled; no invented edges" }
+    observe: doc/fig_trace.png
+    pass: "figure regenerates from the recorded trace"
+    min_exercises: 1
+    timeout: { host: 10min }
+    runs_on: host
+
+excluded_capabilities:  # explicitly NOT APPLICABLE, not tested, not claimed
+  - M/A/F/D/C ISA extensions
+  - S/U privilege modes, PMP, debug
+  - vectored mtvec, interrupt nesting
+  - wfi (illegal-instruction)
+  - hardware misaligned-access fixup (traps)
+  - caches, clock gating, timing closure/tapeout
+
+change_policy: "Any material change (bounds, counts, expected values, exclusions) needs owner approval and a recorded explanation. Contract version bumps on approval."
