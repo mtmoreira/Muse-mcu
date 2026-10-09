@@ -29,8 +29,8 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | G1 | Fault: no tick | PENDING | | App worker queued |
 | G2 | Fault: ctx corrupt | PENDING | | App worker queued |
 | G3 | Fault: UART corrupt | PENDING | | App worker queued |
-| R1 | Bootstrap | PENDING | env/bootstrap.sh | |
-| R2 | make acceptance | PENDING | Makefile | After all gates |
+| R1 | Bootstrap | PASS | env/bootstrap.sh | Provisions pinned tools, 2026-10-09 |
+| R2 | make acceptance | PASS | Makefile, tools/run_acceptance.py | One-command runner, 2026-10-09 |
 | DEMO1 | Live demo | PENDING | results/demo_transcript.txt | After D1 |
 | FIG1 | Arch figure | PASS | doc/fig_arch.png | Generated from rtl/ metadata, visually verified 2026-10-09 |
 | FIG2 | Trace figure | PENDING | doc/fig_trace.png | After D1 |
