@@ -24,7 +24,12 @@
 void vPortInstallTrapVector( void );
 
 #define BLOCKTIM_OPS_FOR_PASS   ( 200U )
-#define BLOCKTIM_CHECK_PERIOD   ( 10U )
+#define BLOCKTIM_CHECK_PERIOD   ( 50U )
+/* Evaluate the still-running status every 4th MARK (200 ticks); the demo's
+ * blocking phases can exceed 100 ticks. Five consecutive failures (1000
+ * ticks of no progress) declares a stall. */
+#define BLOCKTIM_STALL_CHECK_DIV ( 4U )
+#define BLOCKTIM_STALL_THRESHOLD ( 5U )
 
 static volatile int iPassDone = 0;
 static int iStallCount = 0;
@@ -65,6 +70,7 @@ static void vCheckTask( void * pvParameters )
 {
     TickType_t xLastWake = xTaskGetTickCount();
     uint32_t ulOps;
+    uint32_t ulCheckDiv = 0;
 
     ( void ) pvParameters;
 
@@ -77,18 +83,26 @@ static void vCheckTask( void * pvParameters )
         prvPutU32Dec( ulOps );
         uart_putc( '\n' );
 
-        if( xAreBlockTimeTestTasksStillRunning() != pdTRUE )
+        /* Only evaluate the still-running status every BLOCKTIM_STALL_CHECK_DIV
+         * MARKs; the demo legitimately blocks for long periods. */
+        ulCheckDiv++;
+        if( ulCheckDiv >= BLOCKTIM_STALL_CHECK_DIV )
         {
-            iStallCount++;
-            if( iStallCount >= 5 )
+            ulCheckDiv = 0;
+
+            if( xAreBlockTimeTestTasksStillRunning() != pdTRUE )
             {
-                uart_puts( "TEST blocktim FAIL: demo check\n" );
-                prvHalt();
+                iStallCount++;
+                if( iStallCount >= BLOCKTIM_STALL_THRESHOLD )
+                {
+                    uart_puts( "TEST blocktim FAIL: demo check\n" );
+                    prvHalt();
+                }
             }
-        }
-        else
-        {
-            iStallCount = 0;
+            else
+            {
+                iStallCount = 0;
+            }
         }
 
         if( ( ulOps >= BLOCKTIM_OPS_FOR_PASS ) && ( iPassDone == 0 ) )

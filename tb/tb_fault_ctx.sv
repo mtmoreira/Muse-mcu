@@ -58,7 +58,8 @@ module tb_fault_ctx;
 
   // ---- fault state ----
   bit saw_start = 0, saw_fail = 0, saw_pass = 0;
-  bit injected = 0, released = 0;
+  bit injected = 0, released = 0, polling = 0;
+  longint poll_start_cycle = 0;
   logic [31:0] inj_addr, inj_old, inj_new;
   longint inj_cycle = 0;
   int inj_idx = -1;
@@ -80,7 +81,7 @@ module tb_fault_ctx;
         if (l == "TEST regtest START") saw_start = 1;
         else if (l.len() >= 16 && l.substr(0, 15) == "TEST regtest FAIL") saw_fail = 1;
         else if (l == "TEST regtest PASS") saw_pass = 1;
-        else if (!injected && l.len() > 13 && l.substr(0, 12) == "MARK ctxsave ") begin
+        else if (!injected && !polling && l.len() > 13 && l.substr(0, 12) == "MARK ctxsave ") begin
           string hs;
           hs = l.substr(13, l.len() - 1);
           if ($sscanf(hs, "%h", inj_addr) == 1) begin
@@ -88,24 +89,16 @@ module tb_fault_ctx;
               $display("TB_FAULT_CTX: WARNING: ctxsave addr 0x%08x outside SRAM", inj_addr);
             end else begin
               inj_idx = (inj_addr - 32'h00010000) >> 2;
-              // Diagnostic: dump neighboring words
-              for (int i = 0; i < 32768; i++) begin
-                if (i >= inj_idx-4 && i <= inj_idx+4) begin
-                  $display("FAULT G2: sram[%0d] = 0x%08x", i, dut.ram.mem[i]);
-                end
-              end
-              // Read old value via direct hierarchical reference (variable index)
-              inj_old = dut.ram.mem[inj_idx];
-              inj_new = 32'hDEADBEEF;  // known bad value (skip old^1 for now)
-              inj_cycle = cycle;
-              // Write new value via direct hierarchical reference
-              dut.ram.mem[inj_idx] = inj_new;
-              injected = 1;
-              $display("FAULT G2: injected at cycle %0d addr 0x%08x (sram word %0d) old=0x%08x new=0x%08x",
-                       inj_cycle, inj_addr, inj_idx, inj_old, inj_new);
-              // prove activation: read back
-              if (dut.ram.mem[inj_idx] !== inj_new)
-                $display("TB_FAULT_CTX: WARNING: read-back differs");
+              // Start polling for the save to complete. The firmware prints
+              // MARK ctxsave BEFORE the ecall (uart_putc blocks ~4340c/byte,
+              // so the line completes ~87k cycles before the trap). The port
+              // saves x5 into this slot during the ecall trap; the slot
+              // transitions from X (uninitialized) to the pattern. Inject on
+              // the first non-X observation, which is strictly after the save
+              // and strictly before the task resumes (restore).
+              polling = 1; poll_start_cycle = cycle;
+              $display("FAULT G2: ctxsave addr 0x%08x (sram word %0d), polling for save",
+                       inj_addr, inj_idx);
             end
           end else
             $display("TB_FAULT_CTX: WARNING: cannot parse ctxsave addr '%s'", hs);
@@ -116,6 +109,33 @@ module tb_fault_ctx;
           released = 1;
           $display("FAULT G2: value restored at cycle %0d", cycle);
         end
+      end
+    end
+  end
+
+  // ---- save-completion poller: inject after the port's save, before restore ----
+  // The slot is X until the ecall trap's SAVE stores x5. Poll every cycle;
+  // on the first non-X value, corrupt it immediately. The task is descheduled
+  // (in the trap handler / scheduler), so the restore cannot interleave.
+  always @(posedge clk) begin
+    if (polling && !injected && inj_idx >= 0) begin
+      logic [31:0] v;
+      v = dut.ram.mem[inj_idx];
+      // DEBUG: print first few polls
+      if (cycle < poll_start_cycle + 200000 && (cycle % 50000 == 0)) begin
+        $display("POLLDBG: cycle %0d mem[%0d]=0x%08x isunknown=%0d", cycle, inj_idx, v, $isunknown(v));
+      end
+      if (!$isunknown(v)) begin
+        inj_old = v;
+        inj_new = 32'hDEADBEEF;
+        inj_cycle = cycle;
+        dut.ram.mem[inj_idx] = inj_new;
+        polling = 0;
+        injected = 1;
+        $display("FAULT G2: injected at cycle %0d addr 0x%08x (sram word %0d) old=0x%08x new=0x%08x",
+                 inj_cycle, inj_addr, inj_idx, inj_old, inj_new);
+        if (dut.ram.mem[inj_idx] !== inj_new)
+          $display("TB_FAULT_CTX: WARNING: read-back differs after inject");
       end
     end
   end

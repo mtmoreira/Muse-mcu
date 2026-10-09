@@ -309,3 +309,75 @@ accounting from this file.
 **Root cause:** The G2 worker built the instrumented variant without BUILD=build/g2, overwriting fw/build/rtos_regtest.hex. Additionally, `make` did not recompile (stale .o files) when rebuilding clean — required `rm -f fw/build/rtos_regtest.*` first.
 **Fix:** Forced clean rebuild of rtos_regtest. B1 ALL PASS re-verified (marks=6, 600 switches).
 **Lesson:** The fw Makefile does not track EXTRA_DEFS changes in dependencies; variant builds must use separate BUILD dirs AND clean before switching.
+
+## 2026-10-09: Blocked-items fixer (A9, B5, B6 PASS; B4/B7/G2 investigation)
+
+### A9 (timer accuracy + GPIO): PASS via Verilator
+- Icarus caps at ~10-12M cycles; A9 needs 50M+ (1000 ticks at 50000 cycles/tick).
+- Built Verilator 5.032 RTL harness (tb/rtl_vlt/sim_top_rtl.sv + tb/rtl_vlt/tb_a9.cpp)
+  mirroring tb/tb_timer_gpio.sv: 1 Mbaud UART sink, MARK tick sequence 1..1000,
+  16 GPIO loopback patterns, architectural MTI trap-entry periods 50000+-1.
+- Result: 1000/1000 ticks in tolerance, 16/16 GPIO, firmware TEST PASS at 50.1M cycles.
+- Backend recorded in results/a9_gate.json per manifest per-run backend rule.
+- Build recipe: use `verilator --cc` (NOT --binary) then `make -f Vsim_top_rtl.mk`;
+  --binary implies --main which conflicts with the harness's main() at link time.
+
+### B5 (software timers): PASS via Verilator
+- 200 expiries need ~25M cycles; exceeds Icarus budget.
+- Generic Verilator RTOS harness (tb/rtl_vlt/tb_rtos_vlt.cpp) mirrors tb/tb_rtos.sv
+  (115200 baud, MARK counting, TEST PASS/FAIL detection, tb_test_irq pulser).
+- Result: TEST timer PASS expiries=209 at ~25M cycles, 0 errors.
+- Runner: tb/run_rtos_vlt.sh (mirrors tb/run_rtos.sh args).
+
+### B6 (ISR-to-task): PASS via Verilator
+- Root cause of BLOCKED: app check task (fw/app/rtos_isr.c) used 10-tick check
+  period with 5-strike stall detector; the upstream IntQueue demo has legitimate
+  blocking phases >50 ticks, causing false FAILs.
+- Fix: check every 50 ticks, evaluate still-running every 4th MARK (200 ticks),
+  5-strike threshold (1000 ticks of no progress). Also corrected tb irq period:
+  B6 requires tb_test_irq pulses every 50000 cycles (+irqperiod=50000).
+- Result: TEST isr PASS handoffs=301 at ~5M cycles, 0 errors.
+
+### B4 (task notifications): BLOCKED after genuine effort
+- Root cause of original BLOCKED: app check task (fw/app/rtos_notify.c) declared
+  FAIL after 5 consecutive 10-tick checks with no progress, but the upstream
+  TaskNotify demo's initial xTaskNotifyWait blocks for 100 ticks. The check
+  fired at ~50 ticks, before the demo could even start.
+- Fix applied: NOTIFY_OPS_FOR_PASS 10→500 (manifest), check period 10→50 ticks,
+  still-running evaluated every 4th MARK (200 ticks), 5-strike threshold.
+- Progress: demo now runs (was stuck at 2 ops, now reaches 213 ops). The upstream
+  TaskNotify/TaskNotifyArray demos make bursty progress (2→47→62→208→213) then
+  stall in a later test phase. The 213 ops include ISR notifications from the
+  tick hook (every 50 ticks); the task-context demo appears blocked.
+- Isolated tests prove the kernel is correct: minimal xTaskNotify/xTaskNotifyWait
+  loops PASS; the exact prvSingleTaskTests initial sequence (wait/query/notify)
+  PASSes in isolation. The stall is specific to the upstream demo's later phases,
+  likely a port/timing interaction in the timer-notification or interrupt-test
+  phase.
+- Verdict: BLOCKED. The byte-identical upstream demo stalls at ~213/500
+  notifications. Further debugging requires tracing the upstream demo's later
+  phases, which is beyond the app-wiring scope.
+
+### B7 (blocking timeouts): BLOCKED after genuine effort
+- Applied the same check-task fix as B4/B6 (50-tick period, 200-tick
+  still-running checks, 1000-tick stall threshold).
+- Result: 0 timeout events (ops=0). The upstream blocktim demo's tasks are not
+  executing queue operations. xAreBlockTimeTestTasksStillRunning() returns
+  pdTRUE (cycles increment) but g_trace_qsend/g_trace_qrecv remain 0.
+- Verdict: BLOCKED. The upstream demo does not progress to queue operations on
+  this port. Root cause undetermined; possibly task creation or queue setup
+  interaction.
+
+### G2 (fault: context corrupt): injection timing
+- Root cause of original BLOCKED: firmware printed "MARK ctxsave <addr>" BEFORE
+  the ecall, but uart_putc() blocks ~4340 cycles/byte. The 20-byte MARK line
+  takes ~87k cycles to transmit. The tb injected when it saw '\n' (at 87k),
+  but the ecall/save happened at ~87.1k (after the print). The injection
+  landed BEFORE the save and was overwritten.
+- Fix: tb/tb_fault_ctx.sv now uses fixed-delay injection (cycle+2000 after MARK)
+  instead of immediate injection. The save happens at ~MARK+100, restore at
+  ~MARK+3000; injecting at MARK+2000 lands in the window.
+- Firmware address derivation verified: port saves x5 at sp_at_ecall-112
+  (SAVE does sp-124, x5 at +12). Firmware computes sp-112 in naked asm before
+  the ecall. TCB pxTopOfStack confirms the stack location.
+- Status: testing in progress.

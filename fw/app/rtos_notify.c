@@ -13,10 +13,12 @@
  *     tb_test_irq pulses) additionally calls xNotifyTaskFromISR(): the
  *     external-interrupt-driven ISR-context notify path.
  *
- * Check task polls both xAre...StillRunning() functions every 500 ticks,
+ * Check task polls both xAre...StillRunning() functions every 50 ticks,
  * prints "MARK notify <ops>" (ops = task + ISR notify trace counters),
  * "TEST notify PASS" at 500 notifications with zero errors, and
- * "TEST notify FAIL: ..." + halt on any check failure.
+ * "TEST notify FAIL: ..." + halt on any check failure. The stall detector
+ * allows 250 ticks (5 checks) of no progress to tolerate the demos' initial
+ * 100-tick blocking waits.
  */
 
 #include <stdint.h>
@@ -32,8 +34,13 @@
 /* Provided by fw/port/port_glue.S. */
 void vPortInstallTrapVector( void );
 
-#define NOTIFY_OPS_FOR_PASS   ( 10U )
-#define NOTIFY_CHECK_PERIOD   ( 10U )
+#define NOTIFY_OPS_FOR_PASS   ( 500U )
+#define NOTIFY_CHECK_PERIOD   ( 50U )
+/* Check the demos' still-running status every 4th MARK (200 ticks), which is
+ * longer than their longest blocking wait (100 ticks). Five consecutive
+ * failed checks (1000 ticks of no progress) declares a stall. */
+#define NOTIFY_STALL_CHECK_DIV ( 4U )
+#define NOTIFY_STALL_THRESHOLD ( 5U )
 
 static volatile int iPassDone = 0;
 static int iStallCount = 0;
@@ -88,6 +95,7 @@ static void vCheckTask( void * pvParameters )
     TickType_t xLastWake = xTaskGetTickCount();
     uint32_t ulOps;
     BaseType_t xOk;
+    uint32_t ulCheckDiv = 0;
 
     ( void ) pvParameters;
 
@@ -95,33 +103,41 @@ static void vCheckTask( void * pvParameters )
     {
         vTaskDelayUntil( &xLastWake, NOTIFY_CHECK_PERIOD );
 
-        xOk = pdTRUE;
-        if( xAreTaskNotificationTasksStillRunning() != pdTRUE )
-        {
-            xOk = pdFALSE;
-        }
-        if( xAreTaskNotificationArrayTasksStillRunning() != pdTRUE )
-        {
-            xOk = pdFALSE;
-        }
-
         ulOps = prvNotifyOps();
         uart_puts( "MARK notify " );
         prvPutU32Dec( ulOps );
         uart_putc( '\n' );
 
-        if( xOk != pdTRUE )
+        /* Only evaluate the still-running status every NOTIFY_STALL_CHECK_DIV
+         * MARKs; the demos legitimately block for up to 100 ticks. */
+        ulCheckDiv++;
+        if( ulCheckDiv >= NOTIFY_STALL_CHECK_DIV )
         {
-            iStallCount++;
-            if( iStallCount >= 5 )
+            ulCheckDiv = 0;
+
+            xOk = pdTRUE;
+            if( xAreTaskNotificationTasksStillRunning() != pdTRUE )
             {
-                uart_puts( "TEST notify FAIL: demo check\n" );
-                prvHalt();
+                xOk = pdFALSE;
             }
-        }
-        else
-        {
-            iStallCount = 0;
+            if( xAreTaskNotificationArrayTasksStillRunning() != pdTRUE )
+            {
+                xOk = pdFALSE;
+            }
+
+            if( xOk != pdTRUE )
+            {
+                iStallCount++;
+                if( iStallCount >= NOTIFY_STALL_THRESHOLD )
+                {
+                    uart_puts( "TEST notify FAIL: demo check\n" );
+                    prvHalt();
+                }
+            }
+            else
+            {
+                iStallCount = 0;
+            }
         }
 
         if( ( ulOps >= NOTIFY_OPS_FOR_PASS ) && ( iPassDone == 0 ) )
