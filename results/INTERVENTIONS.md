@@ -55,3 +55,33 @@ accounting from this file.
   clean host (this host is not clean) — recorded as a limitation.
 - Coordinator verified `iverilog -V` = 12.0 and a compile+run smoke test PASS
   in its own session before committing.
+
+## 2026-10-08 — Phase 1 (upstream fetch) worker report
+- All 8 fetch tasks done; 116 files under third_party/; third_party/PINS.md
+  records repo URL + revision + sha256 + license + treatment per component.
+  Byte-identical verification: FreeRTOS-Kernel V11.3.1 (tag =
+  3a22924e0a9ddbbc8b0758881c33b3422a5cc20d, 12 files, cmp clean, MIT),
+  FreeRTOS demos (main @ f4fcc3b228643144727e9257ba12db1cb632b6e6, 13 .c files +
+  7 template files, diff -r clean), riscv-arch-test (main @
+  c242670a5d3c600b57e601b2f1ad27c804dc426e, 39 I + 6 Zicsr .S, diff -r clean;
+  every .S includes exactly "riscv_arch_test.h"), spiflash.v (picorv32 @
+  ef203c2b0a3fb793280f5114941416c425c5b461, ISC, byte-identical).
+- Spike (riscv-isa-sim @ e448970b1668f7893f88e54824e1387a3e5fe09b) built from
+  source: configure/make/install all exit=0; installed to
+  ~/workspace/toolchains/spike; `spike --help` runs (1.1.1-dev).
+- RFC 6234 sha256.c/.h/sha-private.h extracted mechanically (§8.1.1/§8.1.3/
+  §8.2.2; stdio driver excluded); host gcc -Wall -Wextra -O2 zero warnings;
+  7/7 self-tests PASS incl. padding-boundary vectors cross-checked vs hashlib.
+- NIST shabytetestvectors.zip (sha256
+  929ef80b7b3418aca026643f6f248815913b60e01741a44bba9e118067f4c9b8),
+  21 .rsp files incl. SHA256ShortMsg/LongMsg/Monte.
+- KEY FINDING: spiflash.v is NOT power-on ready (0x03 gated on `powered_up`;
+  one 0xAB wake byte required first). Manifest A8 assumption corrected to match
+  the qualified model (firmware driver issues the wake byte); pass criteria
+  unchanged — documentation correction, not a contract change.
+- KEY FINDING: Ubuntu 24.04 noble does NOT package device-tree-compiler at
+  all; worker built dtc 1.8.1 from git.kernel.org source into
+  ~/workspace/toolchains/dtc. Coordinator fixed env/bootstrap.sh: removed
+  device-tree-compiler from the apt list, added a dtc-1.8.1-from-source step
+  (section 2b); bash -n passes.
+- Nothing failed. No commit made by the worker (coordinator commits).

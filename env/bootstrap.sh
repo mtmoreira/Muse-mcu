@@ -56,10 +56,40 @@ if ! grep -qE '^VERSION_ID="24\.04"' /etc/os-release 2>/dev/null; then
 fi
 
 # ---------------- 2. apt packages ----------------
+# NOTE: device-tree-compiler is intentionally NOT in this list: Ubuntu 24.04
+# noble does not package it (absent from main/universe/updates/backports).
+# dtc is built from source in section 2b below (Spike's configure requires it).
 log "Updating apt and installing base packages..."
 $SUDO apt-get update -q
 $SUDO apt-get install -y -q \
-  build-essential autoconf g++ flex bison git python3 device-tree-compiler
+  build-essential autoconf g++ flex bison git python3
+
+# ---------------- 2b. dtc 1.8.1 from source (needed to build Spike) ----------------
+DTC_PREFIX="$TOOLCHAIN_ROOT/dtc"
+if command -v dtc >/dev/null 2>&1; then
+  log "dtc already installed: $(dtc --version 2>&1 | head -1); keeping it."
+elif [ -x "$DTC_PREFIX/bin/dtc" ]; then
+  log "dtc 1.8.1 already built at $DTC_PREFIX; keeping it."
+  export PATH="$DTC_PREFIX/bin:$PATH"
+else
+  log "Building dtc 1.8.1 from source (git.kernel.org)..."
+  mkdir -p "$UPSTREAM_DL_DIR" "$TOOLCHAIN_ROOT"
+  DTC_SRC="$UPSTREAM_DL_DIR/dtc"
+  if [ ! -d "$DTC_SRC" ]; then
+    git clone --depth 1 --branch v1.8.1 https://git.kernel.org/pub/scm/utils/dtc/dtc.git "$DTC_SRC"
+  fi
+  {
+    echo "=== dtc v1.8.1 source build $(date -u +%FT%TZ) ==="
+    cd "$DTC_SRC"
+    make -j"$(nproc)"
+    make install PREFIX="$DTC_PREFIX"
+    echo "exit=$?"
+  } >"$UPSTREAM_DL_DIR/dtc-build.log" 2>&1
+  tail -3 "$UPSTREAM_DL_DIR/dtc-build.log" | grep -q "exit=0" \
+    || fail "dtc source build failed; see $UPSTREAM_DL_DIR/dtc-build.log"
+  export PATH="$DTC_PREFIX/bin:$PATH"
+  log "dtc built: $($DTC_PREFIX/bin/dtc --version 2>&1 | head -1)"
+fi
 
 # ---------------- 3. yosys 0.33 (apt; abort if the distro version is not 0.33) ----------------
 log "Checking yosys 0.33 availability..."

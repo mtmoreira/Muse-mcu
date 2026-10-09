@@ -133,7 +133,7 @@ requirements:
     min_exercises: 256
     timeout: { sim_cycles: 2000000, host: 15min }
     runs_on: rtl
-    assumptions: "spiflash.v qualified at impl: 0x03 READ supported, mode 0, CS-high deselect, power-on ready; checklist recorded"
+    assumptions: "spiflash.v qualified (third_party/picosoc_spiflash/QUALIFICATION.md): 0x03 READ supported, mode 0, MSB-first, CS active-low with deselect resetting the transaction; NOT power-on ready: the model gates 0x03 on a powered_up flag, so the firmware SPI driver issues one 0xAB wake byte after power-on before reads (standard flash wake behavior, recorded in the checklist)"
 
   - id: A9
     layer: A
