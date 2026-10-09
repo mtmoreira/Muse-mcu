@@ -16,7 +16,7 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | B2 | Queues | PASS | tb/build/run_rtos_rtos_queue.log | 4168 ops, 0 errors, 2026-10-09 |
 | B3 | Semaphores/mutexes | PASS | tb/build/run_rtos_rtos_sema.log | 2376 ops, 0 errors, 2026-10-09 |
 | B4 | Task notifications | BLOCKED | | TaskNotify demo stalls (count stuck at 2) |
-| B5 | Software timers | BLOCKED | | Needs ~27M cycles for 200 expiries; exceeds budget |
+| B5 | Software timers | PASS | results/b5_gate.json, results/raw/b5_verilator.log | 209 expiries, 0 errors, Verilator backend (recorded), 2026-10-09 |
 | B6 | ISR-to-task | BLOCKED | | IntQueue/IntSemTest timing checks fail |
 | B7 | Blocking timeouts | BLOCKED | | BlockTime demo not progressing |
 | C1 | Preemption <=2000cyc | PASS | results/raw/preempt.log | 52/52 events, max 427 cycles (bound 2000), 2026-10-09 |

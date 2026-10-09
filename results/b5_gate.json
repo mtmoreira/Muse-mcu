@@ -1,0 +1,13 @@
+{
+  "gate": "B5",
+  "verdict": "PASS",
+  "date": "2026-10-09",
+  "backend": "verilator-5.032 (RTL, cycle-based; manifest primary is Icarus 12.0, per-run backend recorded here)",
+  "firmware": "fw/build/rtos_timer.hex",
+  "criteria": {
+    "expiries": ">=200 timer expiries (firmware reported 209), 0 errors",
+    "firmware_pass": "TEST timer PASS",
+    "marks": ">=1 MARK timer progress lines"
+  },
+  "note": "Icarus caps at ~10-12M cycles; 200 expiries need ~25M cycles. Same RTL, firmware, marker protocol as tb/tb_rtos.sv."
+}
