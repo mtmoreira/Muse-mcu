@@ -303,3 +303,9 @@ accounting from this file.
 **What broke:** G2 tb injects at the firmware-computed ctxsave address (0x000103d0), but SRAM[240:248] are all X (diagnostic dump confirmed). The firmware's `sp - 112` calculation does not point to the actual saved-x5 location. The injection writes to unused memory; firmware does not FAIL.
 **Root cause:** Firmware tb-interface bug. The `vRegTestG2Iter` computes the save slot as `sp - 112` after its own `addi sp,sp,-32`, but the actual save location differs (task caller frame or FreeRTOS stack layout).
 **Status:** G2 BLOCKED pending correct address derivation.
+
+## 2026-10-09: B1 hex overwritten by G2 worker (environment)
+**What broke:** B1 started failing — the fw/build/rtos_regtest.hex contained G2 instrumentation (MARK ctxsave) despite the source having the #ifdef gate.
+**Root cause:** The G2 worker built the instrumented variant without BUILD=build/g2, overwriting fw/build/rtos_regtest.hex. Additionally, `make` did not recompile (stale .o files) when rebuilding clean — required `rm -f fw/build/rtos_regtest.*` first.
+**Fix:** Forced clean rebuild of rtos_regtest. B1 ALL PASS re-verified (marks=6, 600 switches).
+**Lesson:** The fw Makefile does not track EXTRA_DEFS changes in dependencies; variant builds must use separate BUILD dirs AND clean before switching.
