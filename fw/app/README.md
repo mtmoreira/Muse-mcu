@@ -22,7 +22,7 @@ Per-demo wiring notes:
 - **rtos_queue (B2)** — `BlockQ`, `GenQTest`, `QPeek`, `PollQ` started at
   `tskIDLE_PRIORITY+1` (their internal priorities stay within
   `configMAX_PRIORITIES=5`); check task at `configMAX_PRIORITIES-1` polls all
-  four check functions every 500 ticks. PASS at >=2000 queue ops.
+  four check functions every 10 ticks. PASS at >=2000 queue ops.
 - **rtos_sema (B3)** — `semtest`, `countsem`, `recmutex`; same check-task
   pattern. Semaphore/mutex ops are queue ops internally, counted via the
   queue trace macros. PASS at >=1000 ops.
