@@ -20,7 +20,7 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | B6 | ISR-to-task | BLOCKED | | IntQueue/IntSemTest timing checks fail |
 | B7 | Blocking timeouts | BLOCKED | | BlockTime demo not progressing |
 | C1 | Preemption <=2000cyc | PASS | results/raw/preempt.log | 52/52 events, max 427 cycles (bound 2000), 2026-10-09 |
-| D1 | App end-to-end (24 msgs) | PENDING | results/raw/demo_uart.log | App worker running |
+| D1 | App end-to-end (24 msgs) | PASS | results/raw/demo_uart.log | 24/24 packets, TEST PASS, 2026-10-09 |
 | D2 | SHA self-test (8 vecs) | PENDING | (in D1 UART log) | App worker running |
 | E1 | Frozen RTL revision | PENDING | tools/check_frozen.py | After all gates |
 | F1 | Synthesis | PASS | results/f1_synth.json | Yosys 0.33, 11858 cells, 19495 um2, blackboxes={bootrom,sram}, 2026-10-09 |
