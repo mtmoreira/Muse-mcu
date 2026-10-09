@@ -393,3 +393,32 @@ accounting from this file.
   saved-context SRAM location needs to be determined via a different method
   (e.g., watching the CPU's store operations in Verilator, or instrumenting
   the port's SAVE macro).
+
+## 2026-10-09: G2 PASS — deterministic x5-slot derivation from port SAVE macro
+**Previous failures:** Four firmware-derived address attempts failed. The firmware
+computed `sp-112` in a naked asm helper, but (a) the MARK-print timing model was
+wrong (uart_putc is non-blocking; the tb saw '\n' ~4340 cycles AFTER the
+save+restore completed, so injections landed after the restore), and (b) a later
+attempt watched the pxCurrentTCB *pointer variable* (0x1d0e0) instead of the TCB
+struct it points to — the SAVE macro does `store_x sp, 0(t0)` where t0 is the
+TCB pointer VALUE, i.e. it writes to `*(pxCurrentTCB)`, not to `pxCurrentTCB`.
+**Fix (tb/rtl_vlt/tb_g2_final.cpp, Verilator):** Read the actual upstream
+portContext.h SAVE macro (not the firmware's guess):
+  - SAVE runs on the TASK stack (ISR-stack switch happens after the save).
+  - `addi sp,sp,-124; store_x x5,3*4(sp)` → x5 at sp_at_trap - 112.
+The harness reads the CPU's live sp (rf[2]) while the target ecall executes
+(pc=0x1d5c, the ecall in vRegTestAsm — an earlier run targeted a vTaskDelay
+ecall at 0x3910 whose x5 was not the pattern), computes x5_addr = sp-112,
+then watches the CPU data-store interface (d_wstrb/d_addr/d_wdata).
+**Empirical verification:** observed the store to 0x10820 with data 0x22222222
+(known regtest pattern) 3 cycles after the trap; pre-inject SRAM readback
+confirmed 0x22222222 (this caught TWO bugs: (1) mcause for M-mode ecall is 11,
+not 8; (2) the bus maps sram_d_waddr = d_addr[16:2] WITHOUT subtracting the
+0x10000 base, so the first index computation read/wrote the wrong word and the
+real store overwrote the fault).
+**Injection:** at cycle 239384, addr 0x10820, old 0x22222222 → new 0xdddddddd,
+readback confirmed ACTIVE. The restore loaded the corrupted x5; the regtest
+verify (`bne x6,t0`) failed → "TEST regtest FAIL: task 1 x6 expected dddddddd"
+at cycle 443667. G2: ALL PASS. Evidence: results/raw/g2_fault_ctx.log.
+Runner: tb/run_g2_final.sh (builds harness if missing, enforces clean B1
+firmware, checks ALL PASS + injection log + FAIL marker).

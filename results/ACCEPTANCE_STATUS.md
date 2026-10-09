@@ -27,7 +27,7 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | F2 | Gate-level app (4 msgs) | PASS | results/f2_gate.json | 4/4 packets, Verilator backend, 2026-10-09 |
 | F3 | Gate-level preempt | PASS | results/f3_gate.json | 10/10 events, max 208cyc (bound 2000), Verilator, 2026-10-09 |
 | G1 | Fault: no tick | PASS | tb/logs/ | Fault active, checker rejects, 2026-10-09 |
-| G2 | Fault: ctx corrupt | BLOCKED | | Wrong SRAM addr; injection ineffective |
+| G2 | Fault: ctx corrupt | PASS | results/raw/g2_fault_ctx.log | x5 slot derived from port SAVE (sp-112), store verified w/pattern, injected 0xdddddddd, TEST regtest FAIL at 443667cyc, 2026-10-09 |
 | G3 | Fault: UART corrupt | PASS | | Tamper detected, checker rejects, 2026-10-09 |
 | R1 | Bootstrap | PASS | env/bootstrap.sh | Provisions pinned tools, 2026-10-09 |
 | R2 | make acceptance | PASS | Makefile, tools/run_acceptance.py | One-command runner, 2026-10-09 |
