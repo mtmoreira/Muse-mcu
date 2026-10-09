@@ -33,7 +33,7 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | R2 | make acceptance | PASS | Makefile, tools/run_acceptance.py | One-command runner, 2026-10-09 |
 | DEMO1 | Live demo | PASS | demo/run_demo.sh, results/demo_transcript.txt | Narrated feed, transcript saved, 2026-10-09 |
 | FIG1 | Arch figure | PASS | doc/fig_arch.png | Generated from rtl/ metadata, visually verified 2026-10-09 |
-| FIG2 | Trace figure | PENDING | doc/fig_trace.png | After D1 |
+| FIG2 | Trace figure | PASS | doc/fig_trace.png | From D1 VCD (50MB), 2026-10-09 |
 
 ## Verdict rules
 - PASS: manifest pass criteria met with evidence, min_exercises satisfied.
