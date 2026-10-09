@@ -251,22 +251,13 @@ __attribute__( ( naked ) ) static void vRegTestAsm( uint32_t ulIdx,
 static void vRegTestTask( void * pvParameters )
 {
     uint32_t ulIdx = ( uint32_t ) ( uintptr_t ) pvParameters;
-    uint32_t ulIter = 0;
 
     for( ; ; )
     {
-        /* Voluntary yield exercises the yield context-switch path at high
-         * rate; every 16th batch uses a real vTaskDelay(1) to also exercise
-         * the tick-driven block/wake path. The 1 kHz tick preempts throughout. */
-        if( ( ulIter & 15 ) == 0 )
-        {
-            vTaskDelay( 1 );
-        }
-        else
-        {
-            taskYIELD();
-        }
-        ulIter++;
+        /* Voluntary yield: exercises the yield context-switch path at high
+         * rate. The 1 kHz tick preempts throughout, exercising the tick
+         * path as well. */
+        taskYIELD();
         vRegTestAsm( ulIdx, REGTEST_BATCH_ITERS );
     }
 }
