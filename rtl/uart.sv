@@ -38,7 +38,7 @@ module uart (
   // RX state
   logic        rx_s1, rx_s2;
   logic        rx_busy_q;
-  logic [3:0]  rx_bitcnt_q;  // samples taken: 0..7 data, 8 = stop
+  logic [3:0]  rx_bitcnt_q;  // sample index: 0=start (discarded), 1..8 = D0..D7, 9 = stop
   logic [15:0] rx_cnt_q;
   logic [7:0]  rx_shift_q;
   logic [7:0]  rxdata_q;
@@ -117,7 +117,7 @@ module uart (
   assign rx_fall = rx_s2 && !rx_s1;
 
   // Frame-complete condition, evaluated from pre-update state.
-  assign rx_frame_done = rx_busy_q && (rx_cnt_q == 16'd0) && (rx_bitcnt_q == 4'd8);
+  assign rx_frame_done = rx_busy_q && (rx_cnt_q == 16'd0) && (rx_bitcnt_q == 4'd9);
 
   always_ff @(posedge clk) begin
     if (rst) begin
@@ -144,12 +144,15 @@ module uart (
         end
       end else begin
         if (rx_cnt_q == 16'd0) begin
-          if (rx_bitcnt_q < 4'd8)
+          // Sample plan: bitcnt 0 lands at start-bit center and is discarded
+          // (a framing check could assert it is 0); bitcnt 1..8 sample D0..D7
+          // at bit centers, LSB first; bitcnt 9 samples the stop bit center
+          // and its value is ignored.
+          if ((rx_bitcnt_q >= 4'd1) && (rx_bitcnt_q <= 4'd8))
             rx_shift_q <= {rx_s2, rx_shift_q[7:1]}; // LSB first
-          // bitcnt 8 samples the stop bit; its value is ignored.
           rx_bitcnt_q <= rx_bitcnt_q + 4'd1;
           rx_cnt_q    <= div_eff - 16'd1;
-          if (rx_bitcnt_q == 4'd8) begin
+          if (rx_bitcnt_q == 4'd9) begin
             rx_busy_q  <= 1'b0;
             rxdata_q   <= rx_shift_q;
             rx_empty_q <= 1'b0;

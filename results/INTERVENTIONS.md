@@ -85,3 +85,56 @@ accounting from this file.
   device-tree-compiler from the apt list, added a dtc-1.8.1-from-source step
   (section 2b); bash -n passes.
 - Nothing failed. No commit made by the worker (coordinator commits).
+
+## 2026-10-08 — Phase 2a (CPU RTL) worker report
+- rtl/rv32i_cpu.sv delivered fresh (522 lines), port list character-identical to
+  spec; Yosys 0.33 elaboration PASS, `proc; opt; check` shows no inferred
+  latches. Worker built Yosys 0.33 from the yosys-0.33 tag source locally
+  (stale PATH assumption on their VM) — same git sha 2584903a060.
+- Microarch: pure single-cycle; PC/regfile/CSRs the only sequential elements;
+  decode validates every opcode/funct3/funct7 (WFI, FENCE.TSO, bad immediates,
+  undefined CSRs, RO-CSR writes -> illegal-insn); trap priority
+  fetch-fault > illegal > misaligned(4/6) > access-fault(5/7) > ecall(11) >
+  ebreak(3); sync traps preempt interrupts; MEI > MSI > MTI; interrupt-taken
+  cycle defers the instruction (dbg_instr_valid=0, mepc=current PC, re-fetch
+  after MRET). No spec deviations.
+- Two documented interface assumptions: d_wstrb suppressed on trap-taken
+  cycles (d_addr not gated, no comb loop); a pending load's address may present
+  during an interrupt-taken cycle but is discarded and re-executed (MMIO with
+  destructive reads should disable interrupts first).
+
+## 2026-10-08 — Phase 3/4 fan-out (4 workers)
+- P4a bare-metal fw: crt0/linker/drivers/Makefile/hello, uart_rx/spi/
+  timer_gpio test apps, arch-test shim (DUT + Spike HTIF-console variants),
+  tools/build_arch.py + tools/check_arch.py, tb/arch/README.md handoff.
+- P4b FreeRTOS fw: port wiring + fw/port/README.md, FreeRTOSConfig.h,
+  fw/sha256/, B1-B7 apps, preempt_test, app_demo (3-task + sha_selftest),
+  tools/gen_flash.py. Verbatim driver/marker/flash-format contracts given.
+- P3a directed tb: tb_reset/tb_trap/tb_irq/tb_memmap + tb_arch.sv + run
+  scripts; own mini-programs via gcc (not blocked on fw).
+- P3b peripheral/app tb: tb_uart_rx/tb_spi/tb_timer_gpio/tb_preempt/tb_app
+  (+DEMO1 live narration + VCD), tools/check_app.py, G1/G2/G3 fault variants
+  + clean-baseline rerun. Verbatim marker/flash-format contracts given.
+
+## 2026-10-08 — P3a report: A3/A4/A5/A6 PASS, UART RX RTL bug found+fixed
+- P3a delivered: A3 PASS 3/3 (resets N=1,8,100), A4 PASS 8/8 (all trap cases
+  with correct mcause/mepc/mtval), A5 PASS (20 MTI + 4 MEI, one per source,
+  no nesting, max timer latency 0 cycles), A6 PASS 40/40. tb_arch.sv capture
+  path validated with dummy PASS/FAIL ELFs; full 45-test run blocked on P4a's
+  arch ELFs. vvp exits 1 on $fatal, 0 on $finish (verified empirically).
+- BUG (P3a found, coordinator fixed): uart.sv RX sampled the start-bit center
+  as D0, shifting D0..D6 and dropping D7: received = (sent<<1)&0xFE (0xA5
+  arrived as 0x4A). Fix: sample plan is now bitcnt0=start-center (discarded),
+  bitcnt1..8=D0..D7, bitcnt9=stop-center (ignored); rx_frame_done moved to
+  bitcnt==9. Code-only diff confirmed exactly the 3 intended line changes.
+- Fix verified by coordinator with a standalone unit sim (/tmp/tb_uart_unit.sv,
+  scratch): RX bytes {00,FF,55,AA,A5,3C} all OK, TX 0xA5 frame OK
+  (UART_UNIT: ALL PASS). A side note: the first unit-sim attempt failed only
+  because the scratch tb used a 10x-wrong bit period (testbench bug, not RTL).
+- ENVIRONMENT: another VM replacement wiped /usr/bin/yosys again (iverilog
+  12.0 survived). Reinstalling yosys 0.33 via apt in background; P3a's run
+  scripts already fall back to a verified 12.0 at
+  ~/workspace/building-ai-computer/toolchains/icarus/deb/usr/bin if needed.
+- P3a deviations noted for follow-up: none blocking; A5's UART byte-value
+  check was relaxed to defined-ness only pending this fix (now fixed — P3b's
+  A7 run will exercise full byte values).
