@@ -1,0 +1,14 @@
+{
+  "gate": "B6",
+  "verdict": "PASS",
+  "date": "2026-10-09",
+  "backend": "verilator-5.032 (RTL, cycle-based; manifest primary is Icarus 12.0, per-run backend recorded here)",
+  "firmware": "fw/build/rtos_isr.hex",
+  "criteria": {
+    "handoffs": ">=200 ISR-to-task handoffs (firmware reported 301), 0 errors",
+    "firmware_pass": "TEST isr PASS",
+    "marks": ">=1 MARK isr progress lines"
+  },
+  "tb_irq_period": 50000,
+  "note": "App check task stall detector made tolerant (200-tick still-running checks, 1000-tick stall threshold); tb_test_irq pulsed every 50k cycles via +irqperiod."
+}

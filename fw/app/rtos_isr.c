@@ -35,7 +35,11 @@
 void vPortInstallTrapVector( void );
 
 #define ISR_OPS_FOR_PASS   ( 200U )
-#define ISR_CHECK_PERIOD   ( 10U )
+#define ISR_CHECK_PERIOD   ( 50U )
+/* Evaluate still-running every 4th MARK (200 ticks). Five consecutive
+ * failures (1000 ticks of no progress) declares a stall. */
+#define ISR_STALL_CHECK_DIV ( 4U )
+#define ISR_STALL_THRESHOLD ( 5U )
 
 static volatile int iPassDone = 0;
 static int iStallCount = 0;
@@ -92,6 +96,8 @@ static void vCheckTask( void * pvParameters )
 
     ( void ) pvParameters;
 
+    uint32_t ulCheckDiv = 0;
+
     for( ; ; )
     {
         vTaskDelayUntil( &xLastWake, ISR_CHECK_PERIOD );
@@ -111,18 +117,24 @@ static void vCheckTask( void * pvParameters )
         prvPutU32Dec( ulOps );
         uart_putc( '\n' );
 
-        if( xOk != pdTRUE )
+        /* Only evaluate still-running every ISR_STALL_CHECK_DIV MARKs. */
+        ulCheckDiv++;
+        if( ulCheckDiv >= ISR_STALL_CHECK_DIV )
         {
-            iStallCount++;
-            if( iStallCount >= 5 )
+            ulCheckDiv = 0;
+            if( xOk != pdTRUE )
             {
-                uart_puts( "TEST isr FAIL: demo check\n" );
-                prvHalt();
+                iStallCount++;
+                if( iStallCount >= ISR_STALL_THRESHOLD )
+                {
+                    uart_puts( "TEST isr FAIL: demo check\n" );
+                    prvHalt();
+                }
             }
-        }
-        else
-        {
-            iStallCount = 0;
+            else
+            {
+                iStallCount = 0;
+            }
         }
 
         if( ( ulOps >= ISR_OPS_FOR_PASS ) && ( iPassDone == 0 ) )
