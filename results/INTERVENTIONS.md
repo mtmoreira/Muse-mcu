@@ -210,3 +210,8 @@ accounting from this file.
 **Root cause:** Testbench bug, not RTL. tb_rtos.sv released reset with `repeat (5) @(posedge clk); rst = 0;` — the blocking `rst = 0` races the CPU's synchronous always_ff at the same posedge. Under Icarus event ordering the CPU can sample an inconsistent state where the instruction retires (PC advances) but the rd write is suppressed. The P3a templates avoid this with `@(negedge clk); rst = 0; #1;`.
 **Fix:** Changed tb_rtos.sv (and tb_preempt.sv, plus P3a's tb_app/tb_fault_ctx/tb_fault_notick/tb_fault_uart which had the same racy pattern) to release reset on the negedge with a #1 settle. Verified: BOOT + TEST START + MARK lines now appear.
 **Lesson:** Never release a synchronous reset with a blocking assignment at a posedge; use negedge + #1.
+
+## 2026-10-09: A7 UART RX overrun (firmware bug)
+**What broke:** A7 (tb_uart_rx) received 32/64 bytes then timed out. Firmware blocked waiting for byte 33.
+**Root cause:** Firmware bug, not RTL. The UART RX is a single-byte buffer (new frame overwrites an unread byte, per rtl/uart.sv). The firmware echoed each byte immediately via blocking uart_putc(), and every 16 bytes printed a 17-byte MARK (1.5ms of TX blocking at 115200 baud). During MARK transmission the firmware could not poll RX, so incoming frames overran the buffer. Exactly 32 bytes (2 MARK intervals) got through before the backlog became unrecoverable.
+**Fix:** Rewrote fw/app/uart_rx_test.c to buffer all 64 bytes in RAM in a fast poll loop (no TX), then echo with MARKs in a second phase. Rebuilt and committed.
