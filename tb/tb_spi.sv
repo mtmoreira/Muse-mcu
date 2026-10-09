@@ -164,7 +164,9 @@ module tb_spi;
   initial begin
     logic [31:0] expect_sum;
     repeat (10) @(posedge clk);
+    @(negedge clk);
     rst = 1'b0;
+    #1;
     $display("TB_SPI: reset released");
 
     wait (saw_pass);

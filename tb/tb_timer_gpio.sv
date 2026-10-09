@@ -115,7 +115,9 @@ module tb_timer_gpio;
   // ---- main ----
   initial begin
     repeat (10) @(posedge clk);
+    @(negedge clk);
     rst = 1'b0;
+    #1;
     $display("TB_TIMER_GPIO: reset released");
 
     wait (saw_pass);

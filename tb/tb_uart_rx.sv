@@ -113,7 +113,9 @@ module tb_uart_rx;
     bit pass_seen;
 
     repeat (10) @(posedge clk);
+    @(negedge clk);
     rst = 1'b0;
+    #1;
     $display("TB_UART_RX: reset released at cycle %0d", cycle);
 
     wait (saw_start);
