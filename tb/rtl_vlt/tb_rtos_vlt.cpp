@@ -100,7 +100,6 @@ int main(int argc, char **argv) {
                         mark_count++;
                         if (mark_count % 20 == 0)
                             printf("[RTOS_VLT %s] marks=%d\n", testname.c_str(), mark_count);
-                        printf("[RTOS_VLT %s] mark_value: %s", testname.c_str(), cur_line.c_str()); /* DIAG temp */
                     }
                     cur_line.clear();
                     if (pass_seen && mark_count >= minmarks) done = true;

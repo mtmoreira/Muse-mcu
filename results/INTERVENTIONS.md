@@ -368,6 +368,48 @@ accounting from this file.
   this port. Root cause undetermined; possibly task creation or queue setup
   interaction.
 
+### B7 update 2026-10-09: counter bug fixed, gate still infeasible (measured)
+- ROOT CAUSE of the 0-events reading (previous entry's "root cause
+  undetermined" was wrong): fw/app/rtos_blocktim.c prvTimeoutEvents() returned
+  g_trace_qsend + g_trace_qrecv (SUCCESS counters). On a blocking send/receive
+  whose block time expires, third_party/freertos_kernel/queue.c fires exactly
+  one traceQUEUE_SEND_FAILED / traceQUEUE_RECEIVE_FAILED (queue.c ~1093,
+  ~1581) and never the success macros. The demo was making progress all along;
+  the app counted the wrong counters. The previous "demo not executing queue
+  ops" conclusion was also premature: the demo's Test 0 (prvBasicDelayTests)
+  burns ~900 ticks before the first queue op, so nothing (not even successful
+  sends) happens inside the 1200-tick budget's early window.
+- FIX (app only, fw/app/rtos_blocktim.c): prvTimeoutEvents() now returns
+  g_trace_qsend_fail + g_trace_qrecv_fail (externs already declared in
+  fw/freertos/FreeRTOSConfig.h:126-127). third_party/ untouched (byte-identical).
+- SECOND APP BUG found during measurement: the stall check (evaluate
+  xAreBlockTimeTestTasksStillRunning() every 4th MARK, 5-strike threshold)
+  false-fired "TEST blocktim FAIL: demo check" at tick ~1000 on a healthy
+  demo. The demo's cycle counters only advance at loop boundaries (Test 0 ~900
+  ticks, then Tests 1-4 ~1000 ticks with no counter change; xSecondaryCycles
+  stays 0 until the first full loop ends ~1900 ticks), and the function
+  requires BOTH counters to advance since its previous call. Fixed threshold
+  to 12 consecutive failures (2400 ticks > worst genuine ~1900-tick gap);
+  documented the math in the app comment. Verified: no false trip over 7950
+  ticks.
+- MEASURED EVENT RATE (Verilator RTL, 50 MHz, 1 kHz tick, 400M-cycle run =
+  7950 ticks): 48 timeout events, 0 errors (no FAIL/ASSERT lines;
+  xErrorOccurred never set), no false stall trip. Steady-state loop: ~12
+  events per ~1987 ticks (Test 1: 5 recv timeouts over 310 ticks; Test 2: 5
+  send timeouts over 310 ticks; Tests 3/4: 1 send + 1 recv timeout, 175 ticks
+  each; Test 0 contributes ~900 ticks and 0 events).
+- INFEASIBILITY: 200 events need 200/48*7950 = 33,125 ticks = ~1.66B cycles
+  at 50,000 cycles/tick = 27.6x the manifest's 60M-cycle (1200-tick) budget.
+  Structural lower bound (12 events per >=1900-tick loop): >=31,667 ticks =
+  >=1.58B cycles = >=26x over budget. Host time would be ~25 min > 20-min host
+  budget too. Final 60M-cycle manifest-budget run: timeout at 60M cycles,
+  23 MARKs, 2 timeout events, no false FAIL (honest timeout, not a verdict bug).
+- Verdict: B7 stays BLOCKED. Reaching 200 events needs the unmodified upstream
+  demo's timeline (owner options: relax the count, extend the budget, or accept
+  the structural rate). Evidence: results/raw/b7_blocktim_400M_uart.log
+  (48 events / 7950 ticks), results/raw/b7_blocktim_60M_vlt.log,
+  tb/logs/run_rtos_vlt_rtos_blocktim.log.
+
 ### G2 (fault: context corrupt): injection timing
 - Root cause of original BLOCKED: firmware printed "MARK ctxsave <addr>" BEFORE
   the ecall, but uart_putc() blocks ~4340 cycles/byte. The 20-byte MARK line
