@@ -103,7 +103,9 @@ module tb_fault_notick;
     longint fault_cyc;
     int mti_at_fault;
     repeat (10) @(posedge clk);
+    @(negedge clk);
     rst = 1'b0;
+    #1;
     $display("TB_FAULT_NOTICK: reset released");
 
     // run normally until fault_at_tick MTI entries

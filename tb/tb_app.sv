@@ -341,7 +341,9 @@ module tb_app;
   initial begin
     logic [31:0] watermark;
     repeat (10) @(posedge clk);
+    @(negedge clk);
     rst = 1'b0;
+    #1;
     $display("TB_APP: reset released");
 
     wait (saw_pass);

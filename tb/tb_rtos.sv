@@ -72,7 +72,9 @@ module tb_rtos;
     $display("[TB_RTOS %s] hex=%s mark=%s minmarks=%0d irqperiod=%0d timeout=%0d",
              testname, hexfile, markname, minmarks, irqperiod, timeout_cyc);
     repeat (5) @(posedge clk);
+    @(negedge clk);
     rst = 0;
+    #1;
     $display("[TB_RTOS %s] reset released", testname);
   end
 

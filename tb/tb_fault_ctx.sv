@@ -134,7 +134,9 @@ module tb_fault_ctx;
   // ---- main ----
   initial begin
     repeat (10) @(posedge clk);
+    @(negedge clk);
     rst = 1'b0;
+    #1;
     $display("TB_FAULT_CTX: reset released");
 
     wait (saw_fail || saw_pass);

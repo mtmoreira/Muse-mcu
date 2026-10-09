@@ -204,3 +204,9 @@ accounting from this file.
 - scratch_p4b/ (worker scaffolding + sim logs) moved to results/raw/
   (gitignored, preserved locally). fw/build/ added to .gitignore
   (regenerable via make).
+
+## 2026-10-09: tb reset race (B1 gate failure)
+**What broke:** B1 (rtos_regtest via tb_rtos.sv) timed out with zero UART output. Debug showed the DUT took a store-access-fault trap (mcause=7) at main()'s first `sw ra,12(sp)` because sp=0xFFFFFFF0: the crt0 `lui sp,0x30` executed (PC advanced) but the rf write did not take effect.
+**Root cause:** Testbench bug, not RTL. tb_rtos.sv released reset with `repeat (5) @(posedge clk); rst = 0;` — the blocking `rst = 0` races the CPU's synchronous always_ff at the same posedge. Under Icarus event ordering the CPU can sample an inconsistent state where the instruction retires (PC advances) but the rd write is suppressed. The P3a templates avoid this with `@(negedge clk); rst = 0; #1;`.
+**Fix:** Changed tb_rtos.sv (and tb_preempt.sv, plus P3a's tb_app/tb_fault_ctx/tb_fault_notick/tb_fault_uart which had the same racy pattern) to release reset on the negedge with a #1 settle. Verified: BOOT + TEST START + MARK lines now appear.
+**Lesson:** Never release a synchronous reset with a blocking assignment at a posedge; use negedge + #1.

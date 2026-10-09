@@ -149,7 +149,9 @@ module tb_preempt;
   // ---- main ----
   initial begin
     repeat (10) @(posedge clk);
+    @(negedge clk);
     rst = 1'b0;
+    #1;
     $display("TB_PREEMPT: reset released");
 
     wait (events >= 50);

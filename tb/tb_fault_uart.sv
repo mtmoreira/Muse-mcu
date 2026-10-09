@@ -105,7 +105,9 @@ module tb_fault_uart;
 
   initial begin
     repeat (10) @(posedge clk);
+    @(negedge clk);
     rst = 1'b0;
+    #1;
     $display("TB_FAULT_UART: reset released");
 
     wait (saw_pass);
