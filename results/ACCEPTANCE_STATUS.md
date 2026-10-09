@@ -11,14 +11,14 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | A6 | Memory map (40) | PASS | tb/build/run_memmap.log | 40/40, rerun 2026-10-09 |
 | A7 | UART RX (64 bytes) | PASS | results/raw/uart_rx.log | 64/64 bytes match in order, 2026-10-09 |
 | A8 | SPI master (256B) | PASS | results/raw/spi.log | 256/256, 0 violations, rerun 2026-10-09 |
-| A9 | Timer accuracy + GPIO | PENDING | results/raw/timer_gpio.log | Gates worker queued |
+| A9 | Timer accuracy + GPIO | BLOCKED | results/raw/timer_gpio.log | Needs 50M+ cycles; exceeds Icarus 10-12M budget |
 | B1 | Register preservation | PASS | tb/build/run_rtos_rtos_regtest.log | 600 switches, 6 marks, 2026-10-09 |
-| B2 | Queues | PENDING | | Gates worker queued |
-| B3 | Semaphores/mutexes | PENDING | | Gates worker queued |
-| B4 | Task notifications | PENDING | | Gates worker queued |
-| B5 | Software timers | PENDING | | Gates worker queued |
-| B6 | ISR-to-task | PENDING | | Gates worker queued |
-| B7 | Blocking timeouts | PENDING | | Gates worker queued |
+| B2 | Queues | PASS | tb/build/run_rtos_rtos_queue.log | 4168 ops, 0 errors, 2026-10-09 |
+| B3 | Semaphores/mutexes | PASS | tb/build/run_rtos_rtos_sema.log | 2376 ops, 0 errors, 2026-10-09 |
+| B4 | Task notifications | BLOCKED | | TaskNotify demo stalls (count stuck at 2) |
+| B5 | Software timers | BLOCKED | | Needs ~27M cycles for 200 expiries; exceeds budget |
+| B6 | ISR-to-task | BLOCKED | | IntQueue/IntSemTest timing checks fail |
+| B7 | Blocking timeouts | BLOCKED | | BlockTime demo not progressing |
 | C1 | Preemption <=2000cyc | PASS | results/raw/preempt.log | 52/52 events, max 427 cycles (bound 2000), 2026-10-09 |
 | D1 | App end-to-end (24 msgs) | PENDING | results/raw/demo_uart.log | App worker running |
 | D2 | SHA self-test (8 vecs) | PENDING | (in D1 UART log) | App worker running |
