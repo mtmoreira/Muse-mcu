@@ -21,14 +21,14 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | B7 | Blocking timeouts | BLOCKED | | BlockTime demo not progressing |
 | C1 | Preemption <=2000cyc | PASS | results/raw/preempt.log | 52/52 events, max 427 cycles (bound 2000), 2026-10-09 |
 | D1 | App end-to-end (24 msgs) | PASS | results/raw/demo_uart.log | 24/24 packets, TEST PASS, 2026-10-09 |
-| D2 | SHA self-test (8 vecs) | PENDING | (in D1 UART log) | App worker running |
+| D2 | SHA self-test (8 vecs) | PASS | results/raw/demo_uart.log | SHA SELFTEST PASS, 8 NIST vectors, 2026-10-09 |
 | E1 | Frozen RTL revision | PENDING | tools/check_frozen.py | After all gates |
 | F1 | Synthesis | PASS | results/f1_synth.json | Yosys 0.33, 11858 cells, 19495 um2, blackboxes={bootrom,sram}, 2026-10-09 |
 | F2 | Gate-level app (4 msgs) | PASS | results/f2_gate.json | 4/4 packets, Verilator backend, 2026-10-09 |
 | F3 | Gate-level preempt | PASS | results/f3_gate.json | 10/10 events, max 208cyc (bound 2000), Verilator, 2026-10-09 |
-| G1 | Fault: no tick | PENDING | | App worker queued |
-| G2 | Fault: ctx corrupt | PENDING | | App worker queued |
-| G3 | Fault: UART corrupt | PENDING | | App worker queued |
+| G1 | Fault: no tick | PASS | tb/logs/ | Fault active, checker rejects, 2026-10-09 |
+| G2 | Fault: ctx corrupt | BLOCKED | | Wrong SRAM addr; injection ineffective |
+| G3 | Fault: UART corrupt | PASS | | Tamper detected, checker rejects, 2026-10-09 |
 | R1 | Bootstrap | PASS | env/bootstrap.sh | Provisions pinned tools, 2026-10-09 |
 | R2 | make acceptance | PASS | Makefile, tools/run_acceptance.py | One-command runner, 2026-10-09 |
 | DEMO1 | Live demo | PENDING | results/demo_transcript.txt | After D1 |
