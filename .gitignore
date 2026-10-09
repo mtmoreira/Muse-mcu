@@ -1,5 +1,6 @@
 # Build outputs, caches, traces: regenerable, never committed
 obj_dir/
+fw/build/
 *.vvp
 *.vcd
 *.fst

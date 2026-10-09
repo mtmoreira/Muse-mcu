@@ -159,3 +159,48 @@ accounting from this file.
 - vvp nonzero-exit propagation through run scripts verified.
 - Evidence logs (local, results/raw/): preempt.log, spi.log, uart_rx.log,
   fault_ctx.log, arch/.
+
+## 2026-10-09 — P4b (FreeRTOS fw) completed without a captured report
+- Coordinator inspected the tree directly. Delivered: fw/port/ (README.md with
+  a genuine port-wiring analysis, port_glue.c/.S,
+  freertos_risc_v_chip_specific_extensions.h), fw/freertos/FreeRTOSConfig.h,
+  fw/sha256/ (algorithm-adapted, selftest_vectors.h, sha_selftest.c),
+  fw/app/ (B1-B7 apps, preempt_test, app_demo, hello, pingpong, bring-up),
+  tools/gen_flash.py (flash format matches the brief byte-for-byte),
+  tools/gen_sha_vectors.py.
+- KEY EVIDENCE (from scratch_p4b/sim_pingpong.log): the FreeRTOS scheduler
+  runs — BOOT, TEST pingpong START, MARK ping 0, MARK pong 0 (two tasks
+  switching). regtest2 sim: MARK after=11111111 (register patterns verified).
+- KEY PORT FINDING (fw/port/README.md): the stock
+  vPortSetupTimerInterrupt() uses `csrr mhartid`, which this CPU does not
+  implement (illegal-insn trap). Fix: configMTIME_BASE_ADDRESS=0 suppresses
+  the stock version; port_glue.c provides a strong override programming the
+  real CLINT. MEI/MSI routed via the weak
+  freertos_risc_v_application_interrupt_handler override.
+- COORDINATOR CONSOLIDATION (P4b built in scratch_p4b/, bypassing fw/Makefile;
+  P4a still owns parts of fw/): promoted scratch_p4b/string.c to
+  fw/drivers/string.c (rewrote the "temporary scaffolding" header); rewrote
+  fw/Makefile to build ALL apps (bare-metal + FreeRTOS) into fw/build/ from
+  the canonical fw/ sources (P4a's crt0/linker/drivers + kernel + glue);
+  fixed tools/elf_to_hex.py to pad to exactly 16384 words with 0x0000006f
+  (jal x0,0) so no X words remain in the ROM model (the scratch flow did not
+  pad — Icarus $readmemh leaves unwritten words as X). scratch_p4b/ kept
+  locally as evidence; will move to results/raw/ (gitignored) after the
+  canonical rebuild is verified.
+- Canonical rebuild of all 14 apps in progress (background, logs in
+  /tmp/build_<app>.log).
+
+## 2026-10-09 — fw/ consolidation verified and committed
+- Fixed the unified fw/Makefile link order (-lgcc after objects), added the
+  missing freertos_template include path (IntQueueTimer.h), and renamed
+  DBG_SCRATCH to GPIO_DBG_SCRATCH in preempt_test.c (P4a's canonical mcu.h).
+- All 14 apps build via `make -C fw APP=<name>`: hello, uart_rx_test,
+  spi_test, timer_gpio_test, pingpong, rtos_regtest, rtos_queue, rtos_sema,
+  rtos_notify, rtos_timer, rtos_isr, rtos_blocktim, preempt_test, app_demo.
+  Every .hex is exactly 16384 lines (padded, no X words in ROM).
+- SMOKE PROOF (canonical flow): iverilog + vvp on fw/build/pingpong.hex —
+  BOOT, TEST pingpong START, MARK ping 0, MARK pong 0. The FreeRTOS scheduler
+  runs from the canonical image.
+- scratch_p4b/ (worker scaffolding + sim logs) moved to results/raw/
+  (gitignored, preserved locally). fw/build/ added to .gitignore
+  (regenerable via make).
