@@ -1,0 +1,16 @@
+{
+  "gate": "A9",
+  "verdict": "PASS",
+  "date": "2026-10-09",
+  "backend": "verilator-5.032 (RTL, cycle-based; manifest primary is Icarus 12.0, per-run backend recorded here)",
+  "firmware": "fw/build/timer_gpio_test.hex",
+  "criteria": {
+    "tick_period": "1000/1000 periods at 50000+-1 cycles (architectural MTI trap entries)",
+    "mark_ticks": "1000/1000 MARK tick lines, sequence 1..1000",
+    "gpio": "16/16 MARK gpio lines, no mismatch",
+    "firmware_pass": "TEST timer_gpio PASS"
+  },
+  "cycles": 50137799,
+  "uart_log": "results/raw/a9_verilator.log",
+  "note": "Icarus caps at ~10-12M cycles; 50M+ cycle budget requires Verilator. Same RTL, same firmware, same pass criteria as tb/tb_timer_gpio.sv."
+}

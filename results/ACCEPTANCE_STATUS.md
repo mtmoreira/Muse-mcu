@@ -11,7 +11,7 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | A6 | Memory map (40) | PASS | tb/build/run_memmap.log | 40/40, rerun 2026-10-09 |
 | A7 | UART RX (64 bytes) | PASS | results/raw/uart_rx.log | 64/64 bytes match in order, 2026-10-09 |
 | A8 | SPI master (256B) | PASS | results/raw/spi.log | 256/256, 0 violations, rerun 2026-10-09 |
-| A9 | Timer accuracy + GPIO | BLOCKED | results/raw/timer_gpio.log | Needs 50M+ cycles; exceeds Icarus 10-12M budget |
+| A9 | Timer accuracy + GPIO | PASS | results/a9_gate.json, results/raw/a9_verilator.log | 1000/1000 ticks at 50000+-1cyc, 16/16 GPIO, Verilator backend (recorded), 2026-10-09 |
 | B1 | Register preservation | PASS | tb/build/run_rtos_rtos_regtest.log | 600 switches, 6 marks, 2026-10-09 |
 | B2 | Queues | PASS | tb/build/run_rtos_rtos_queue.log | 4168 ops, 0 errors, 2026-10-09 |
 | B3 | Semaphores/mutexes | PASS | tb/build/run_rtos_rtos_sema.log | 2376 ops, 0 errors, 2026-10-09 |
