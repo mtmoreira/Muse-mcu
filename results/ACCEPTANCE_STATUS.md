@@ -24,8 +24,8 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | D2 | SHA self-test (8 vecs) | PENDING | (in D1 UART log) | App worker running |
 | E1 | Frozen RTL revision | PENDING | tools/check_frozen.py | After all gates |
 | F1 | Synthesis | PASS | results/f1_synth.json | Yosys 0.33, 11858 cells, 19495 um2, blackboxes={bootrom,sram}, 2026-10-09 |
-| F2 | Gate-level app (4 msgs) | PENDING | | Synth worker queued |
-| F3 | Gate-level preempt | PENDING | | Synth worker queued |
+| F2 | Gate-level app (4 msgs) | PASS | results/f2_gate.json | 4/4 packets, Verilator backend, 2026-10-09 |
+| F3 | Gate-level preempt | PASS | results/f3_gate.json | 10/10 events, max 208cyc (bound 2000), Verilator, 2026-10-09 |
 | G1 | Fault: no tick | PENDING | | App worker queued |
 | G2 | Fault: ctx corrupt | PENDING | | App worker queued |
 | G3 | Fault: UART corrupt | PENDING | | App worker queued |
