@@ -1,0 +1,272 @@
+WARNING: third_party/picosoc_spiflash/spiflash.v:108: $readmemh(fw/build/flash.hex): Not enough words in the file for the requested range [0:16777215].
+TB_APP: loaded fw/build/app_demo.hex
+TB_APP: flash image fw/build/flash.hex
+TB_APP: bg range [0x000027e8, 0x00002838)
+WARNING: tb/tb_app.sv:110: $readmemh(fw/build/flash.hex): Not enough words in the file for the requested range [0:65535].
+TB_APP: flash header: seed=12345 nmsg=24
+TB_APP: parsed 24 messages
+VCD info: dumpfile results/raw/demo_trace.vcd opened for output.
+TB_APP: VCD results/raw/demo_trace.vcd armed (window 1000000 cycles from first CS)
+TB_APP: reset released
+UART: BOOT
+UART: SHA SELFTEST START
+UART: SHA SELFTEST PASS
+UART: TEST app_demo START
+UART: PKT 9E55AA01 0 0 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+DEMO: SHA-256(0) = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+DEMO: UART pkt 0 verified
+UART: MARK sha_done 0
+UART: MARK spi_read 0 0
+DEMO: SPI read msg 0 len 0
+UART: MARK queue 0
+DEMO: queue handoff 0
+UART: MARK spi_read 1 1
+DEMO: SPI read msg 1 len 1
+UART: MARK queue 1
+DEMO: queue handoff 1
+TB_APP: VCD window closed at cycle 1493874
+UART: PKT 9E55AA01 1 1 245843abef9e72e7efac30138a994bf6301e7e1d7d7042a33d42e863d2638811
+DEMO: SHA-256(1) = 245843abef9e72e7efac30138a994bf6301e7e1d7d7042a33d42e863d2638811
+DEMO: UART pkt 1 verified
+UART: MARK sha_done 1
+UART: MARK spi_read 2 55
+DEMO: SPI read msg 2 len 55
+UART: MARK queue 2
+DEMO: queue handoff 2
+UART: MARK spi_read 3 56
+DEMO: SPI read msg 3 len 56
+UART: MARK queue 3
+DEMO: queue handoff 3
+UART: PKT 9E55AA01 2 55 78c50b3efe1fd3abc794a773e4ed5ebc45122d7904424b57d965e3a7241b92fb
+DEMO: SHA-256(2) = 78c50b3efe1fd3abc794a773e4ed5ebc45122d7904424b57d965e3a7241b92fb
+DEMO: UART pkt 2 verified
+UART: MARK sha_done 2
+UART: MARK spi_read 4 57
+DEMO: SPI read msg 4 len 57
+UART: MARK queue 4
+DEMO: queue handoff 4
+UART: MARK spi_read 5 63
+DEMO: SPI read msg 5 len 63
+UART: MARK queue 5
+DEMO: queue handoff 5
+UART: PKT 9E55AA01 3 56 8b5673df9b4596aea24744d4b118fd5931d52a6418d74498f8c8722e7fbbb3b2
+DEMO: SHA-256(3) = 8b5673df9b4596aea24744d4b118fd5931d52a6418d74498f8c8722e7fbbb3b2
+DEMO: UART pkt 3 verified
+UART: MARK sha_done 3
+UART: MARK spi_read 6 64
+DEMO: SPI read msg 6 len 64
+UART: MARK queue 6
+DEMO: queue handoff 6
+UART: MARK spi_read 7 65
+DEMO: SPI read msg 7 len 65
+UART: MARK queue 7
+DEMO: queue handoff 7
+UART: PKT 9E55AA01 4 57 1fa6657a5ff8a3823e83b0d6064663443591c574e74ea7e26c1aa0e5300554df
+DEMO: SHA-256(4) = 1fa6657a5ff8a3823e83b0d6064663443591c574e74ea7e26c1aa0e5300554df
+DEMO: UART pkt 4 verified
+UART: MARK sha_done 4
+UART: MARK spi_read 8 119
+DEMO: SPI read msg 8 len 119
+UART: MARK queue 8
+DEMO: queue handoff 8
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 5 63 c6d45a464b04d9013619f753251f829a4b69190969bad1fef2ba36857711c513
+DEMO: SHA-256(5) = c6d45a464b04d9013619f753251f829a4b69190969bad1fef2ba36857711c513
+DEMO: UART pkt 5 verified
+UART: MARK sha_done 5
+UART: MARK spi_read 9 120
+DEMO: SPI read msg 9 len 120
+UART: MARK queue 9
+DEMO: queue handoff 9
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 6 64 96eec5d0f73a31c4ac3687b2ac11490d6d03e7f22947ae67c5230e734d8d9067
+DEMO: SHA-256(6) = 96eec5d0f73a31c4ac3687b2ac11490d6d03e7f22947ae67c5230e734d8d9067
+DEMO: UART pkt 6 verified
+UART: MARK sha_done 6
+UART: MARK spi_read 10 127
+DEMO: SPI read msg 10 len 127
+UART: MARK queue 10
+DEMO: queue handoff 10
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 7 65 fed5efc64ec16abd205a2381377433c70b2eabaef321223717a262a9fa791758
+DEMO: SHA-256(7) = fed5efc64ec16abd205a2381377433c70b2eabaef321223717a262a9fa791758
+DEMO: UART pkt 7 verified
+UART: MARK sha_done 7
+UART: MARK spi_read 11 128
+DEMO: SPI read msg 11 len 128
+UART: MARK queue 11
+DEMO: queue handoff 11
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 8 119 df6463597b4cc620cb16796a8134faa9fcd9419915fccbf382bcbafaf9e86d8e
+DEMO: SHA-256(8) = df6463597b4cc620cb16796a8134faa9fcd9419915fccbf382bcbafaf9e86d8e
+DEMO: UART pkt 8 verified
+UART: MARK sha_done 8
+UART: MARK spi_read 12 129
+DEMO: SPI read msg 12 len 129
+UART: MARK queue 12
+DEMO: queue handoff 12
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 9 120 7923bc366fa3df6147459c45c5b79ab6366e62bd159fcd964fdb4d94f368dc03
+DEMO: SHA-256(9) = 7923bc366fa3df6147459c45c5b79ab6366e62bd159fcd964fdb4d94f368dc03
+DEMO: UART pkt 9 verified
+UART: MARK sha_done 9
+UART: MARK spi_read 13 255
+DEMO: SPI read msg 13 len 255
+UART: MARK queue 13
+DEMO: queue handoff 13
+UART: MARK bg
+UART: PKT 9E55AA01 10 127 ca05e5f977d7306dadcae6233f09a371fd4129df13ab9d2f24f2bdac426aebc4
+DEMO: SHA-256(10) = ca05e5f977d7306dadcae6233f09a371fd4129df13ab9d2f24f2bdac426aebc4
+DEMO: UART pkt 10 verified
+UART: MARK sha_done 10
+UART: MARK spi_read 14 512
+DEMO: SPI read msg 14 len 512
+UART: MARK queue 14
+DEMO: queue handoff 14
+UART: PKT 9E55AA01 11 128 313f9932643795515e335532359350250eadfdeb346a0e72b14224de8ff203f2
+DEMO: SHA-256(11) = 313f9932643795515e335532359350250eadfdeb346a0e72b14224de8ff203f2
+DEMO: UART pkt 11 verified
+UART: MARK sha_done 11
+UART: PKT 9E55AA01 12 129 0e4d18a10024feb25ca08c6be87ff667dc6501e74133d203a0f68e61d657b210
+DEMO: SHA-256(12) = 0e4d18a10024feb25ca08c6be87ff667dc6501e74133d203a0f68e61d657b210
+DEMO: UART pkt 12 verified
+UART: MARK sha_done 12
+UART: MARK spi_read 15 1024
+DEMO: SPI read msg 15 len 1024
+UART: MARK queue 15
+DEMO: queue handoff 15
+UART: PKT 9E55AA01 13 255 f5f0050d28864592eb71bf92f7b80b68abe2f9f7e99c9eda091aebdaf54cff99
+DEMO: SHA-256(13) = f5f0050d28864592eb71bf92f7b80b68abe2f9f7e99c9eda091aebdaf54cff99
+DEMO: UART pkt 13 verified
+UART: MARK sha_done 13
+UART: MARK spi_read 16 231
+DEMO: SPI read msg 16 len 231
+UART: MARK queue 16
+DEMO: queue handoff 16
+UART: PKT 9E55AA01 14 512 0787700d9698e9f2935ed273ac2b69bbdc2908a66b74565921d78f45d55e359d
+DEMO: SHA-256(14) = 0787700d9698e9f2935ed273ac2b69bbdc2908a66b74565921d78f45d55e359d
+DEMO: UART pkt 14 verified
+UART: MARK sha_done 14
+UART: MARK spi_read 17 208
+DEMO: SPI read msg 17 len 208
+UART: MARK queue 17
+DEMO: queue handoff 17
+UART: MARK spi_read 18 5
+DEMO: SPI read msg 18 len 5
+UART: MARK queue 18
+DEMO: queue handoff 18
+UART: PKT 9E55AA01 15 1024 58459378375e7cf3f0a8a6cf0dd8d2cb6fd429f7f3aed9ce198beb242764bcb1
+DEMO: SHA-256(15) = 58459378375e7cf3f0a8a6cf0dd8d2cb6fd429f7f3aed9ce198beb242764bcb1
+DEMO: UART pkt 15 verified
+UART: MARK sha_done 15
+UART: MARK spi_read 19 243
+DEMO: SPI read msg 19 len 243
+UART: MARK queue 19
+DEMO: queue handoff 19
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 16 231 5eee633c45c50137dcbafbc25a7d611c107debad9a8a054198f11f294901ba68
+DEMO: SHA-256(16) = 5eee633c45c50137dcbafbc25a7d611c107debad9a8a054198f11f294901ba68
+DEMO: UART pkt 16 verified
+UART: MARK sha_done 16
+UART: MARK spi_read 20 24
+DEMO: SPI read msg 20 len 24
+UART: MARK queue 20
+DEMO: queue handoff 20
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 17 208 f37eaad695f957267301b8c3a9e12514097d11e4b83ae75b715c33327d861a4e
+DEMO: SHA-256(17) = f37eaad695f957267301b8c3a9e12514097d11e4b83ae75b715c33327d861a4e
+DEMO: UART pkt 17 verified
+UART: MARK sha_done 17
+UART: MARK spi_read 21 151
+DEMO: SPI read msg 21 len 151
+UART: MARK queue 21
+DEMO: queue handoff 21
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 18 5 601a45db71e236d92f7f8e8c82737cca6ecd20ab8597bc2faab87fdc1966deba
+DEMO: SHA-256(18) = 601a45db71e236d92f7f8e8c82737cca6ecd20ab8597bc2faab87fdc1966deba
+DEMO: UART pkt 18 verified
+UART: MARK sha_done 18
+UART: MARK spi_read 22 169
+DEMO: SPI read msg 22 len 169
+UART: MARK queue 22
+DEMO: queue handoff 22
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 19 243 fa5050ec62b650d84c5168f9b93dcb94f88b207bf65af84d9cc900c2bc47e9ce
+DEMO: SHA-256(19) = fa5050ec62b650d84c5168f9b93dcb94f88b207bf65af84d9cc900c2bc47e9ce
+DEMO: UART pkt 19 verified
+UART: MARK sha_done 19
+UART: MARK spi_read 23 261
+DEMO: SPI read msg 23 len 261
+UART: MARK queue 23
+DEMO: queue handoff 23
+UART: MARK bg
+UART: PKT 9E55AA01 20 24 bcc41a80e999e200df0c65fa2de7ff931b1ccdb0e8bd200f9d3869eaa36b9e40
+DEMO: SHA-256(20) = bcc41a80e999e200df0c65fa2de7ff931b1ccdb0e8bd200f9d3869eaa36b9e40
+DEMO: UART pkt 20 verified
+UART: MARK sha_done 20
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 21 151 a931a51e685cff183936bf13e3fab5d8cf0dd0877f05cbca97701f2821330dd6
+DEMO: SHA-256(21) = a931a51e685cff183936bf13e3fab5d8cf0dd0877f05cbca97701f2821330dd6
+DEMO: UART pkt 21 verified
+UART: MARK sha_done 21
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 22 169 bbdb1f985a86a6750424e81a6a0be09aff68aec6536ad80f80d9a02b0e1585ff
+DEMO: SHA-256(22) = bbdb1f985a86a6750424e81a6a0be09aff68aec6536ad80f80d9a02b0e1585ff
+DEMO: UART pkt 22 verified
+UART: MARK sha_done 22
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: PKT 9E55AA01 23 261 87f8ab015f6cdef10babfa7093580c81f0780b9e01cb913cc145f635826abd89
+DEMO: SHA-256(23) = 87f8ab015f6cdef10babfa7093580c81f0780b9e01cb913cc145f635826abd89
+DEMO: UART pkt 23 verified
+UART: MARK sha_done 23
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: MARK bg
+UART: TEST app_demo PASS
+TB_APP: queue watermark = 4
+TB_APP: MARK bg count = 60, bg pc-range entries = 180
+TB_APP: SIM PASS (24/24 packets live-verified, watermark 4, bg 60/180)
+tb/tb_app.sv:384: $finish called at 375115310000 (1ps)
