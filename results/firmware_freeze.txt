@@ -1,0 +1,13 @@
+# Muse MCU — firmware freeze record (D1/D2)
+# Frozen BEFORE any host-side flash/message generation. Any rebuild invalidates this record.
+# v4 (2026-10-09): SHA delay 2->6 ticks and bg mark 10k->2k iters (2-tick
+# delay was shorter than acq's per-message work, so bg still starved).
+# Prior: v3 bg-starvation fix, v2 marker-protocol fixes.
+date_utc: 2026-10-09T09:06Z
+git_branch: work/mcu-acceptance-v1
+git_commit: 9f1e8e8d4f34dd3f54b5f03f73b02e9044878dc6
+fw_image: app_demo
+files:
+  fw/build/app_demo.elf: sha256=171cc08d06300ca207623d3154f72a6c5c1c268fd210ccb8a5fe61b2c53b735d
+  fw/build/app_demo.hex: sha256=a72fbb1fc557f61cb1afccad2a598f88412c0f9a024120ed2ae0c6423d1e62f2
+toolchain: xpack-riscv-none-elf-gcc-15.2.0-1

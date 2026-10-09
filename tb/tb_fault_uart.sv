@@ -71,10 +71,12 @@ module tb_fault_uart;
   end
 
   // byte drainer -> log file
+  // Poll the queue; do NOT wait on sink.byte_ev (events don't persist;
+  // a trigger that fires before the waiter starts is missed forever).
   initial begin
     wait (uartlog_fd != 0);
     forever begin
-      while (sink.byte_q.size() == 0) @(sink.byte_ev);
+      while (sink.byte_q.size() == 0) @(posedge clk);
       $fwrite(uartlog_fd, "%c", sink.byte_q.pop_front());
     end
   end

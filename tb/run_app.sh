@@ -33,7 +33,9 @@ if [ -f "$FW_ELF" ]; then
   SYM_LINE="$("$TC/riscv-none-elf-nm" --print-size "$FW_ELF" 2>/dev/null | awk -v s="$BG_SYM" '$4==s && ($3=="T" || $3=="t") {print}')"
   if [ -n "$SYM_LINE" ]; then
     BG_LO="0x$(echo "$SYM_LINE" | awk '{print $1}')"
-    BG_HI=$(python3 -c "print(hex(int('$BG_LO',16)+int('0x$(echo "$SYM_LINE" | awk '{print $2}')',16)))")
+    # 8 hex digits after 0x: Icarus $value$plusargs %h misparses 0x + short
+    # hex (e.g. 0x2838 -> 000x2838); 0x + 8 digits is safe.
+    BG_HI=$(python3 -c "print('0x%08x' % (int('$BG_LO',16)+int('0x$(echo "$SYM_LINE" | awk '{print $2}')',16)))")
     echo "RUNNER: bg symbol $BG_SYM: lo=$BG_LO hi=$BG_HI"
     BG_ARGS=("+bg_lo=$BG_LO" "+bg_hi=$BG_HI")
   else

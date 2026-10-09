@@ -56,14 +56,14 @@ static void prvPutU32Dec( uint32_t v )
     }
 }
 
-/* Returns 0 on success (prints TEST sha_selftest PASS), non-zero on failure
- * (prints TEST sha_selftest FAIL: <index> and the caller must halt boot). */
+/* Returns 0 on success (prints SHA SELFTEST PASS), non-zero on failure
+ * (prints SHA SELFTEST FAIL: <index> and the caller must halt boot). */
 int sha_selftest_run( void )
 {
     uint32_t i;
     uint8_t digest[ 32 ];
 
-    uart_puts( "TEST sha_selftest START\n" );
+    uart_puts( "SHA SELFTEST START\n" );
 
     for( i = 0; i < ( uint32_t ) SHA_SELFTEST_NVECS; i++ )
     {
@@ -73,7 +73,7 @@ int sha_selftest_run( void )
 
         if( prvMemcmp( digest, sha_selftest_vecs[ i ].expect, 32 ) != 0 )
         {
-            uart_puts( "TEST sha_selftest FAIL: vector " );
+            uart_puts( "SHA SELFTEST FAIL: vector " );
             prvPutU32Dec( i );
             uart_puts( " len=" );
             prvPutU32Dec( sha_selftest_vecs[ i ].len );
@@ -82,6 +82,6 @@ int sha_selftest_run( void )
         }
     }
 
-    uart_puts( "TEST sha_selftest PASS\n" );
+    uart_puts( "SHA SELFTEST PASS\n" );
     return 0;
 }
