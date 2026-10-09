@@ -88,7 +88,9 @@ module tb_uart_rx;
   end
 
   task automatic get_byte(output byte b);
-    while (sink.byte_q.size() == 0) @(sink.byte_ev);
+    // Poll the queue; do NOT wait on byte_ev (events don't persist and can
+    // be missed if multiple bytes arrive before the waiter starts).
+    while (sink.byte_q.size() == 0) @(posedge clk);
     b = sink.byte_q.pop_front();
   endtask
 
