@@ -5,7 +5,7 @@ Repo: https://github.com/mtmoreira/Muse-mcu
 Branch: `work/mcu-acceptance-v1`
 Reproduction: `make acceptance`
 Verification base: commit f34617b0500d89216a5322c8c82c3dae075c6b40
-Report frozen at the finalization commit named below; HEAD adds only this report's own SHA line.
+Report frozen at commit af3164727692cfdc9e89ef03245a4a13132227f0; HEAD adds only this report's own SHA line.
 
 ## Verdict
 
