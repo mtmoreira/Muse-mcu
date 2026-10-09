@@ -7,6 +7,26 @@ All repo paths below are relative to the clone. The suite no longer
 contains hardcoded Linux paths: tool locations resolve via `$PATH` and
 the env vars `TOOLCHAIN`, `SPIKE_BIN`, `VLT_BIN`, `PDK_DIR`.
 
+## 0. One-command setup (recommended)
+
+```bash
+cd /Users/matheustrev/work/Muse-mcu
+bash env/setup.sh            # checks everything, installs what's missing
+source env/activate.sh
+make acceptance
+```
+
+`env/setup.sh` is idempotent: it checks each dependency (python3,
+pyyaml, riscv-none-elf-gcc 15.2.0, iverilog 12.x, verilator 5.x,
+yosys 0.33, spike @ pinned commit, Nangate45 liberty) and installs
+only what is missing or wrong-versioned. Downloads are sha256-verified
+where ground truth exists. It writes `env/activate.sh` (gitignored);
+source that before every run. Pass `--yes` to skip the per-install
+prompts.
+
+The manual steps below are what the script automates; follow them only
+if you prefer to install by hand.
+
 ## 1. Clone
 
 ```bash

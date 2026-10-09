@@ -14,3 +14,4 @@ build/
 # Vendored third-party SOURCES are committed (see third_party/PINS.md);
 # their upstream git checkouts are not.
 *.gen
+env/activate.sh
