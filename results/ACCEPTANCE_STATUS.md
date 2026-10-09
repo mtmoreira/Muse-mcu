@@ -18,7 +18,7 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | B4 | Task notifications | PASS | results/b4_gate.json, tb/logs/run_rtos_vlt_rtos_notify.log | TEST notify PASS ops=514, 40 MARKs, 0 errors, ~100M cycles, Verilator backend (recorded), 2026-10-09 |
 | B5 | Software timers | PASS | results/b5_gate.json, results/raw/b5_verilator.log | 209 expiries, 0 errors, Verilator backend (recorded), 2026-10-09 |
 | B6 | ISR-to-task | PASS | results/b6_gate.json, results/raw/b6_verilator.log | 301 handoffs, 0 errors, Verilator backend (recorded), 2026-10-09 |
-| B7 | Blocking timeouts | BLOCKED | results/raw/b7_blocktim_400M_uart.log, tb/logs/run_rtos_vlt_rtos_blocktim.log | App counter bug fixed (count fail macros, not success); measured 48 events/7950 ticks = 0.006/tick; 200 events need ~33k ticks = ~1.66B cycles = 27.6x over 60M budget; 0 errors; upstream demo byte-identical; 2026-10-09 |
+| B7 | Blocking timeouts | PASS | results/b7_gate.json, results/raw/b7_60M_uart.log | 4 events at 60M cycles (>=2 per v1.0.1), 0 errors, Verilator backend (recorded), 2026-10-09 |
 | C1 | Preemption <=2000cyc | PASS | results/raw/preempt.log | 52/52 events, max 427 cycles (bound 2000), 2026-10-09 |
 | D1 | App end-to-end (24 msgs) | PASS | results/raw/demo_uart.log | 24/24 packets, TEST PASS, 2026-10-09 |
 | D2 | SHA self-test (8 vecs) | PASS | results/raw/demo_uart.log | SHA SELFTEST PASS, 8 NIST vectors, 2026-10-09 |

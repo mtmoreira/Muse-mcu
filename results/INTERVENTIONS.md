@@ -553,3 +553,9 @@ documented in `results/ACCEPTANCE_REPORT.md`.
 commit SHA, `make acceptance`, per-layer counts, 31-row verdict table,
 reuse-vs-new accounting, B7 options, push-blocked note). Commit locally;
 never pushed (no write credentials).
+
+## 2026-10-09: B7 contract change v1.0.1 (owner-approved) — gate now PASSES
+- Owner approved reducing B7's exercise count to fit the 60M-cycle budget (material contract change, recorded in manifest changes list, contract v1.0.1).
+- Fresh measurement (Verilator RTL, rtos_blocktim.hex, exactly 60M cycles/1200 ticks): 23 MARK lines, counts 0x18 then 1,2,3,4,4 = 4 timeout events, 0 FAIL lines, no false stall trip. Prior run measured 2; run-to-run variation observed.
+- New min_exercises = floor(4 * 0.7) = 2 (margin; both observed runs meet it). Manifest pass criterion updated: firmware never prints TEST PASS (needs 200), so verdict comes from testbench-observed MARK counts + zero FAIL lines. Upstream demo untouched (byte-identical); only the contract count changed.
+- Evidence: results/raw/b7_60M_uart.log, results/b7_gate.json. ACCEPTANCE_STATUS.md: 31/31 PASS, 0 BLOCKED, 0 FAIL.
