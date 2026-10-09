@@ -254,10 +254,11 @@ static void vRegTestTask( void * pvParameters )
 
     for( ; ; )
     {
-        /* Voluntary yield: exercises the yield context-switch path at high
-         * rate. The 1 kHz tick preempts throughout, exercising the tick
-         * path as well. */
-        taskYIELD();
+        /* Blocking delay forces a context switch (task blocks, scheduler
+         * runs next ready task). vTaskDelay(1) = 1 tick = 50k cycles;
+         * much faster than vTaskDelay(2) while still exercising the
+         * tick-driven block/wake path. The 1 kHz tick also preempts. */
+        vTaskDelay( 1 );
         vRegTestAsm( ulIdx, REGTEST_BATCH_ITERS );
     }
 }
