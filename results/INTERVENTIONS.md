@@ -559,3 +559,12 @@ never pushed (no write credentials).
 - Fresh measurement (Verilator RTL, rtos_blocktim.hex, exactly 60M cycles/1200 ticks): 23 MARK lines, counts 0x18 then 1,2,3,4,4 = 4 timeout events, 0 FAIL lines, no false stall trip. Prior run measured 2; run-to-run variation observed.
 - New min_exercises = floor(4 * 0.7) = 2 (margin; both observed runs meet it). Manifest pass criterion updated: firmware never prints TEST PASS (needs 200), so verdict comes from testbench-observed MARK counts + zero FAIL lines. Upstream demo untouched (byte-identical); only the contract count changed.
 - Evidence: results/raw/b7_60M_uart.log, results/b7_gate.json. ACCEPTANCE_STATUS.md: 31/31 PASS, 0 BLOCKED, 0 FAIL.
+
+## 2026-10-09: F4 SDF-annotated gate sim — BLOCKED (Icarus specify limitation)
+- Owner approved building the SDF flow using the cell library's own Verilog models (2026-10-09); do not generate our own models.
+- Vendored upstream models: `synth/nangate45_upstream.v` (byte-identical copy of `~/workspace/dft-trial/lib/NangateOpenCellLibrary.v`, sha256 `7b80af03...74363` recorded in `synth/UPSTREAM_MODELS.md` with license header; 125/134 cells have specify blocks, 9 without are filler/antenna/tie, correct).
+- Coverage check: all 28 netlist cell types exist in upstream models with matching ports (script in `tb/run_gate_sdf.sh` audit).
+- Yosys 0.33 (manifest-pinned) has NO `write_sdf` command (only `sta`). Wrote `synth/gen_sdf.py`: parses liberty timing arcs, evaluates NLDM at median slew/load, emits SDF 2.1. Generated `synth/mcu.sdf`: 11,856 cells, 67,377 IOPATHs, 3,344 SETUP/HOLD checks, all non-zero delays (0.02-0.11ns typical).
+- Created `tb/tb_gate_sdf.sv` (SDF testbench with $sdf_annotate, plusarg clock) and `tb/run_gate_sdf.sh` (runner with fail-closed SDF audit).
+- **BLOCKER**: Icarus Verilog 12.0 cannot simulate specify path delays. Compile warning: "Omitting $sdf_annotate() since specify blocks are being omitted." Direct tests prove a `(a => y) = 5.0` specify block has no effect (output changes immediately, not after 5ns). Verified with TWO builds: Ubuntu 12.0-2build2 AND upstream v12_0 from source (built 2026-10-09). Tested -g1995 through -g2012, gate primitives and continuous assignments. Verilator (only alternative) ignores timing entirely.
+- **Verdict**: F4 BLOCKED (tool limitation, not design failure). The 31/31 PASS contract is unaffected. SDF infrastructure committed for future use with a capable simulator. Evidence: `results/sdf_gate.json`. Manifest bumped to v1.0.2 with F4 BLOCKED entry.

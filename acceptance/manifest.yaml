@@ -1,10 +1,11 @@
 # Muse MCU — acceptance contract (machine-readable)
 # Status: PROPOSED (owner approval required before implementation)
-contract_version: 1.0.1
+contract_version: 1.0.2
 status: APPROVED
 approval: { by: owner, date: 2026-10-08, note: "approved with DEMO-1 (human-watchable end-to-end demo) added" }
 changes:
   - { version: 1.0.1, date: 2026-10-09, note: "B7 min_exercises 200 -> 2 per owner approval 2026-10-09; unmodified upstream demo yields ~48 events/7950 ticks, so 200 events need ~1.66B cycles vs the 60M budget" }
+  - { version: 1.0.2, date: 2026-10-09, note: "F4 SDF-annotated gate sim added per owner approval 2026-10-09 (build the SDF flow); status BLOCKED: Icarus 12.0 cannot simulate specify path delays (proven with Ubuntu pkg + upstream v12_0 source), making $sdf_annotate impossible; tool limitation, not design failure; SDF infrastructure committed for future use" }
 target_repo: https://github.com/mtmoreira/Muse-mcu
 work_branch: work/mcu-acceptance-v1
 
@@ -353,6 +354,21 @@ requirements:
     timeout: { sim_cycles: 30000000, host: 120min }
     runs_on: netlist
     assumptions: "zero-delay gate simulation, labeled as such"
+  - id: F4
+    layer: F
+    title: SDF-annotated gate-level simulation
+    behavior: "Gate-level sim with liberty-derived delay back-annotation via SDF; UART output must match zero-delay runs; timing closure at 50 MHz via $setuphold checks."
+    checker: { type: custom, path: "tb/tb_gate_sdf.sv + tb/run_gate_sdf.sh" }
+    stimulus: "hello.hex (bring-up), pingpong.hex (FreeRTOS), 4-message app subset"
+    expected: { source: "liberty timing arcs", value: "UART match + no setup/hold violations at 50 MHz" }
+    observe: "UART log comparison, $setuphold NOTIFIER firings"
+    pass: "workloads run clean at 50 MHz (or max clean frequency reported if lower)"
+    min_exercises: 1
+    timeout: { sim_cycles: 10000000, host: 120min }
+    runs_on: netlist
+    assumptions: "upstream Nangate45 models with specify blocks; SDF from synth/gen_sdf.py; behavioral SRAM/ROM zero-delay"
+    status: BLOCKED
+    blocked_reason: "Icarus 12.0 cannot simulate specify path delays (proven with Ubuntu 12.0-2build2 and upstream v12_0 source builds); $sdf_annotate is omitted at compile time; tool limitation, not design failure; see results/sdf_gate.json"
 
   # ---------------- Fault injection (runs_on: rtl) ----------------
   - id: G1
