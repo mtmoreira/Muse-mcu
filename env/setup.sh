@@ -191,12 +191,13 @@ else
       fi
       if [ "$FAILURES" = 0 ]; then
         IVL_SRC="$DL_DIR/iverilog-src"; IVL_PRE="$TOOLCHAIN_ROOT/icarus-12.0"
+        IVL_LOG="$DL_DIR/iverilog-build.log"
         [ -d "$IVL_SRC" ] || git clone -q https://github.com/steveicarus/iverilog.git "$IVL_SRC" \
           || fail "iverilog clone failed"
-        ( cd "$IVL_SRC" && git checkout -q "$IVL_TAG" && sh autoconf.sh >/dev/null \
-          && ./configure --prefix="$IVL_PRE" >/dev/null \
-          && make -j"$NCPU" >/dev/null 2>&1 && make install >/dev/null 2>&1 ) \
-          || fail "iverilog source build failed"
+        ( cd "$IVL_SRC" && git checkout -q "$IVL_TAG" && sh autoconf.sh >"$IVL_LOG" 2>&1 \
+          && ./configure --prefix="$IVL_PRE" >>"$IVL_LOG" 2>&1 \
+          && make -j"$NCPU" >>"$IVL_LOG" 2>&1 && make install >>"$IVL_LOG" 2>&1 ) \
+          || { fail "iverilog source build failed (log: $IVL_LOG)"; tail -20 "$IVL_LOG" >&2; }
         export PATH="$IVL_PRE/bin:$PATH"
         ivl_ok && ok "iverilog 12.x built from source ($IVL_PRE/bin)"
       fi
@@ -241,10 +242,11 @@ else
       YS_SRC="$DL_DIR/yosys-src"
       [ -d "$YS_SRC" ] || git clone -q https://github.com/YosysHQ/yosys.git "$YS_SRC" \
         || fail "yosys clone failed"
+      YS_LOG="$DL_DIR/yosys-build.log"
       ( cd "$YS_SRC" && git checkout -q "$YOSYS_TAG" \
-        && make -j"$NCPU" PREFIX="$YOSYS_PRE" >/dev/null 2>&1 \
-        && make install PREFIX="$YOSYS_PRE" >/dev/null 2>&1 ) \
-        || fail "yosys source build failed"
+        && make -j"$NCPU" PREFIX="$YOSYS_PRE" >"$YS_LOG" 2>&1 \
+        && make install PREFIX="$YOSYS_PRE" >>"$YS_LOG" 2>&1 ) \
+        || { fail "yosys source build failed (log: $YS_LOG)"; tail -20 "$YS_LOG" >&2; }
       export PATH="$YOSYS_PRE/bin:$PATH"
       if have yosys && yosys -V 2>/dev/null | grep -q "Yosys 0\.33"; then
         ok "yosys 0.33 built from source ($YOSYS_PRE/bin)"
@@ -275,10 +277,11 @@ else
       SP_SRC="$DL_DIR/spike-src"
       [ -d "$SP_SRC" ] || git clone -q https://github.com/riscv/riscv-isa-sim.git "$SP_SRC" \
         || fail "spike clone failed"
+      SP_LOG="$DL_DIR/spike-build.log"
       ( cd "$SP_SRC" && git checkout -q "$SPIKE_PIN" && mkdir -p build && cd build \
-        && ../configure --prefix="$SPIKE_PRE" >/dev/null \
-        && make -j"$NCPU" >/dev/null 2>&1 && make install >/dev/null 2>&1 ) \
-        || fail "spike build failed"
+        && ../configure --prefix="$SPIKE_PRE" >"$SP_LOG" 2>&1 \
+        && make -j"$NCPU" >>"$SP_LOG" 2>&1 && make install >>"$SP_LOG" 2>&1 ) \
+        || { fail "spike build failed (log: $SP_LOG)"; tail -20 "$SP_LOG" >&2; }
       if [ -x "$SPIKE_BIN_DEFAULT" ]; then
         ok "spike built ($SPIKE_BIN_DEFAULT)"
       else
