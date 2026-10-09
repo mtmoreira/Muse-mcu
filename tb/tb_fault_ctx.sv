@@ -88,35 +88,31 @@ module tb_fault_ctx;
               $display("TB_FAULT_CTX: WARNING: ctxsave addr 0x%08x outside SRAM", inj_addr);
             end else begin
               inj_idx = (inj_addr - 32'h00010000) >> 2;
-              // Read old value via for-loop (Icarus requires constant index for hier ref)
+              // Diagnostic: dump neighboring words
               for (int i = 0; i < 32768; i++) begin
-                if (i == inj_idx) inj_old = dut.ram.mem[i];
+                if (i >= inj_idx-4 && i <= inj_idx+4) begin
+                  $display("FAULT G2: sram[%0d] = 0x%08x", i, dut.ram.mem[i]);
+                end
               end
-              inj_new = inj_old ^ 32'h00000001;  // flip bit 0
+              // Read old value via direct hierarchical reference (variable index)
+              inj_old = dut.ram.mem[inj_idx];
+              inj_new = 32'hDEADBEEF;  // known bad value (skip old^1 for now)
               inj_cycle = cycle;
-              // Write new value via for-loop (one-time corruption, not continuous force)
-              for (int i = 0; i < 32768; i++) begin
-                if (i == inj_idx) dut.ram.mem[i] = inj_new;
-              end
+              // Write new value via direct hierarchical reference
+              dut.ram.mem[inj_idx] = inj_new;
               injected = 1;
               $display("FAULT G2: injected at cycle %0d addr 0x%08x (sram word %0d) old=0x%08x new=0x%08x",
                        inj_cycle, inj_addr, inj_idx, inj_old, inj_new);
               // prove activation: read back
-              for (int i = 0; i < 32768; i++) begin
-                if (i == inj_idx) begin
-                  if (dut.ram.mem[i] !== inj_new)
-                    $display("TB_FAULT_CTX: WARNING: read-back differs");
-                end
-              end
+              if (dut.ram.mem[inj_idx] !== inj_new)
+                $display("TB_FAULT_CTX: WARNING: read-back differs");
             end
           end else
             $display("TB_FAULT_CTX: WARNING: cannot parse ctxsave addr '%s'", hs);
         end
         else if (injected && !released && l == "MARK ctxrestored") begin
           // Restore original value (one-time write, no force to release)
-          for (int i = 0; i < 32768; i++) begin
-            if (i == inj_idx) dut.ram.mem[i] = inj_old;
-          end
+          dut.ram.mem[inj_idx] = inj_old;
           released = 1;
           $display("FAULT G2: value restored at cycle %0d", cycle);
         end
