@@ -215,3 +215,8 @@ accounting from this file.
 **What broke:** A7 (tb_uart_rx) received 32/64 bytes then timed out. Firmware blocked waiting for byte 33.
 **Root cause:** Firmware bug, not RTL. The UART RX is a single-byte buffer (new frame overwrites an unread byte, per rtl/uart.sv). The firmware echoed each byte immediately via blocking uart_putc(), and every 16 bytes printed a 17-byte MARK (1.5ms of TX blocking at 115200 baud). During MARK transmission the firmware could not poll RX, so incoming frames overran the buffer. Exactly 32 bytes (2 MARK intervals) got through before the backlog became unrecoverable.
 **Fix:** Rewrote fw/app/uart_rx_test.c to buffer all 64 bytes in RAM in a fast poll loop (no TX), then echo with MARKs in a second phase. Rebuilt and committed.
+
+## 2026-10-09: A7 testbench event race (get_byte)
+**What broke:** A7 v3 firmware printed TEST uart_rx PASS with all 64 bytes, but testbench timed out waiting for PASS marker.
+**Root cause:** Testbench bug. get_byte() used `@(sink.byte_ev)` to wait for bytes. SystemVerilog events don't persist; if multiple bytes arrived before the waiter started, the event was missed and get_byte blocked forever.
+**Fix:** Changed get_byte to poll `sink.byte_q.size()` on posedge clk instead of waiting on the event. (tb_rtos/tb_preempt are safe: they drain the queue after each event.)
