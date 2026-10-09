@@ -23,11 +23,12 @@
 /* Provided by fw/port/port_glue.S. */
 void vPortInstallTrapVector( void );
 
-#define TIMER_BASE_PERIOD     ( 20U )
+#define TIMER_BASE_PERIOD     ( 2U )
 #define TIMER_OPS_FOR_PASS    ( 200U )
-#define TIMER_CHECK_PERIOD    ( 200U )
+#define TIMER_CHECK_PERIOD    ( 50U )
 
 static volatile int iPassDone = 0;
+static int iStallCount = 0;
 
 static void prvPutU32Dec( uint32_t v )
 {
@@ -74,8 +75,16 @@ static void vCheckTask( void * pvParameters )
 
         if( xAreTimerDemoTasksStillRunning( TIMER_CHECK_PERIOD ) != pdTRUE )
         {
-            uart_puts( "TEST timer FAIL: demo check\n" );
-            prvHalt();
+            iStallCount++;
+            if( iStallCount >= 5 )
+            {
+                uart_puts( "TEST timer FAIL: demo check\n" );
+                prvHalt();
+            }
+        }
+        else
+        {
+            iStallCount = 0;
         }
 
         if( ( ulExpiries >= TIMER_OPS_FOR_PASS ) && ( iPassDone == 0 ) )

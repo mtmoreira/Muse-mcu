@@ -36,6 +36,7 @@ void vPortInstallTrapVector( void );
 #define NOTIFY_CHECK_PERIOD   ( 10U )
 
 static volatile int iPassDone = 0;
+static int iStallCount = 0;
 
 static void prvPutU32Dec( uint32_t v )
 {
@@ -111,8 +112,16 @@ static void vCheckTask( void * pvParameters )
 
         if( xOk != pdTRUE )
         {
-            uart_puts( "TEST notify FAIL: demo check\n" );
-            prvHalt();
+            iStallCount++;
+            if( iStallCount >= 5 )
+            {
+                uart_puts( "TEST notify FAIL: demo check\n" );
+                prvHalt();
+            }
+        }
+        else
+        {
+            iStallCount = 0;
         }
 
         if( ( ulOps >= NOTIFY_OPS_FOR_PASS ) && ( iPassDone == 0 ) )

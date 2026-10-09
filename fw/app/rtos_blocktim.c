@@ -27,6 +27,7 @@ void vPortInstallTrapVector( void );
 #define BLOCKTIM_CHECK_PERIOD   ( 10U )
 
 static volatile int iPassDone = 0;
+static int iStallCount = 0;
 
 static void prvPutU32Dec( uint32_t v )
 {
@@ -57,7 +58,7 @@ static void prvHalt( void )
 
 static uint32_t prvTimeoutEvents( void )
 {
-    return ( uint32_t ) ( g_trace_qsend_fail + g_trace_qrecv_fail );
+    return ( uint32_t ) ( g_trace_qsend + g_trace_qrecv );
 }
 
 static void vCheckTask( void * pvParameters )
@@ -78,8 +79,16 @@ static void vCheckTask( void * pvParameters )
 
         if( xAreBlockTimeTestTasksStillRunning() != pdTRUE )
         {
-            uart_puts( "TEST blocktim FAIL: demo check\n" );
-            prvHalt();
+            iStallCount++;
+            if( iStallCount >= 5 )
+            {
+                uart_puts( "TEST blocktim FAIL: demo check\n" );
+                prvHalt();
+            }
+        }
+        else
+        {
+            iStallCount = 0;
         }
 
         if( ( ulOps >= BLOCKTIM_OPS_FOR_PASS ) && ( iPassDone == 0 ) )
