@@ -23,7 +23,7 @@ static const int BIT_CYCLES = 434;  // 115200 baud @ 50 MHz
 
 int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
-    std::string hexp, testname, markname;
+    std::string hexp, testname, markname, uartlogp;
     int minmarks = 1, irqperiod = 0;
     long long timeout_cyc = 60000000LL;
     for (int i = 1; i < argc; i++) {
@@ -34,7 +34,10 @@ int main(int argc, char **argv) {
         else if (a.rfind("+minmarks=", 0) == 0) minmarks = atoi(a.substr(10).c_str());
         else if (a.rfind("+irqperiod=", 0) == 0) irqperiod = atoi(a.substr(11).c_str());
         else if (a.rfind("+timeout=", 0) == 0) timeout_cyc = atoll(a.substr(9).c_str());
+        else if (a.rfind("+uartlog=", 0) == 0) uartlogp = a.substr(9);
     }
+    FILE *uartlog = uartlogp.empty() ? NULL : fopen(uartlogp.c_str(), "w");
+    if (!uartlogp.empty() && !uartlog) { printf("RTOS_VLT: FAIL: cannot open uartlog %s\n", uartlogp.c_str()); return 1; }
     if (hexp.empty() || testname.empty() || markname.empty()) {
         printf("RTOS_VLT: usage: tb_rtos_vlt +hex= +test= +mark= +minmarks= [+irqperiod=] [+timeout=]\n");
         return 1;
@@ -82,6 +85,7 @@ int main(int argc, char **argv) {
                 rx_busy = false;
                 cur_line += (char)rx_byte;
                 if (rx_byte == '\n') {
+                    if (uartlog) { fputs(cur_line.c_str(), uartlog); fflush(uartlog); }
                     if (cur_line.rfind("TEST", 0) == 0) {
                         if (cur_line.find("TEST FAIL") == 0) {
                             printf("RTOS_VLT %s: FAIL: firmware reported: %s", testname.c_str(), cur_line.c_str());
@@ -96,6 +100,7 @@ int main(int argc, char **argv) {
                         mark_count++;
                         if (mark_count % 20 == 0)
                             printf("[RTOS_VLT %s] marks=%d\n", testname.c_str(), mark_count);
+                        printf("[RTOS_VLT %s] mark_value: %s", testname.c_str(), cur_line.c_str()); /* DIAG temp */
                     }
                     cur_line.clear();
                     if (pass_seen && mark_count >= minmarks) done = true;
@@ -108,6 +113,7 @@ int main(int argc, char **argv) {
         if ((cycle % 5000000) == 0) { printf("[RTOS_VLT %s] cycle %lld marks=%d pass=%d\n", testname.c_str(), cycle, mark_count, pass_seen); fflush(stdout); }
     }
 
+    if (uartlog) fclose(uartlog);
     if (done) {
         printf("RTOS_VLT %s: ALL PASS (marks=%d, verilator backend)\n", testname.c_str(), mark_count);
         return 0;

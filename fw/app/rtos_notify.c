@@ -41,6 +41,12 @@ void vPortInstallTrapVector( void );
  * failed checks (1000 ticks of no progress) declares a stall. */
 #define NOTIFY_STALL_CHECK_DIV ( 4U )
 #define NOTIFY_STALL_THRESHOLD ( 5U )
+/* The demos' still-running checkers latch a permanent FAIL on the first call
+ * that observes no progress. TaskNotifyArray's prvSingleTaskTests() blocks
+ * 3x100 ticks before its first progress increment, so the first evaluation
+ * must not happen before tick 1000, or a healthy demo is failed on startup.
+ * (Root-caused 2026-10-09 via debug MARKs: n=1 a=0 from the first check.) */
+#define NOTIFY_STALL_GRACE_TICKS ( 1000U )
 
 static volatile int iPassDone = 0;
 static int iStallCount = 0;
@@ -109,11 +115,19 @@ static void vCheckTask( void * pvParameters )
         uart_putc( '\n' );
 
         /* Only evaluate the still-running status every NOTIFY_STALL_CHECK_DIV
-         * MARKs; the demos legitimately block for up to 100 ticks. */
+         * MARKs; the demos legitimately block for up to 100 ticks. Skip
+         * evaluations entirely during the startup grace period (see
+         * NOTIFY_STALL_GRACE_TICKS): the demos' checkers latch FAIL
+         * permanently on the first no-progress observation. */
         ulCheckDiv++;
         if( ulCheckDiv >= NOTIFY_STALL_CHECK_DIV )
         {
             ulCheckDiv = 0;
+
+            if( xTaskGetTickCount() < NOTIFY_STALL_GRACE_TICKS )
+            {
+                continue;
+            }
 
             xOk = pdTRUE;
             if( xAreTaskNotificationTasksStillRunning() != pdTRUE )

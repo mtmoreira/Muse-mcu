@@ -139,7 +139,18 @@ extern volatile unsigned long g_trace_unexpected_irq;
 #define traceQUEUE_SEND_FAILED( pxQueue )         do { g_trace_qsend_fail++; } while( 0 )
 #define traceQUEUE_RECEIVE_FAILED( pxQueue )      do { g_trace_qrecv_fail++; } while( 0 )
 #define traceTASK_NOTIFY( uxIndexToNotify )       do { g_trace_notify++; } while( 0 )
-#define traceRETURN_xTaskGenericNotifyFromISR( xReturn ) \
+/* ISR notify paths (tasks.c: xTaskGenericNotifyFromISR line 8226,
+ * vTaskGenericNotifyGiveFromISR line 8360). traceTASK_NOTIFY_FROM_ISR covers
+ * both xTaskNotifyFromISR() and xTaskNotifyAndQueryFromISR() (both route
+ * through xTaskGenericNotifyFromISR); traceTASK_NOTIFY_GIVE_FROM_ISR covers
+ * vTaskNotifyGiveFromISR(), which previously had no counting macro and was
+ * invisible to the op counter. The previously-defined
+ * traceRETURN_xTaskGenericNotifyFromISR is intentionally removed: it fired on
+ * the same xTaskGenericNotifyFromISR path (tasks.c line 8305), so defining
+ * both would count each ISR notify twice. */
+#define traceTASK_NOTIFY_FROM_ISR( uxIndexToNotify ) \
+                                                  do { g_trace_notify_isr++; } while( 0 )
+#define traceTASK_NOTIFY_GIVE_FROM_ISR( uxIndexToNotify ) \
                                                   do { g_trace_notify_isr++; } while( 0 )
 #define traceTIMER_EXPIRED( pxTimer )             do { g_trace_timer++; } while( 0 )
 #define traceTASK_SWITCHED_IN()                   do { g_trace_ctxsw++; } while( 0 )
