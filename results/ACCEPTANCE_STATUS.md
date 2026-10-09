@@ -26,7 +26,7 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 | F1 | Synthesis | PASS | results/f1_synth.json | Yosys 0.33, 11858 cells, 19495 um2, blackboxes={bootrom,sram}, 2026-10-09 |
 | F2 | Gate-level app (4 msgs) | PASS | results/f2_gate.json | 4/4 packets, Verilator backend, 2026-10-09 |
 | F3 | Gate-level preempt | PASS | results/f3_gate.json | 10/10 events, max 208cyc (bound 2000), Verilator, 2026-10-09 |
-| F4 | SDF-annotated gate sim | BLOCKED | results/sdf_gate.json | Icarus 12.0 cannot simulate specify path delays (proven with Ubuntu pkg + upstream v12_0 source builds); $sdf_annotate omitted; tool limitation, not design failure, 2026-10-09 |
+| F4 | SDF-annotated gate sim | WITHDRAWN | results/sdf_gate.json | Withdrawn per owner decision 2026-10-09; Icarus 12.0 cannot simulate specify path delays (tool limitation); infrastructure retained in-tree, 2026-10-09 |
 | G1 | Fault: no tick | PASS | tb/logs/ | Fault active, checker rejects, 2026-10-09 |
 | G2 | Fault: ctx corrupt | PASS | results/raw/g2_fault_ctx.log | x5 slot derived from port SAVE (sp-112), store verified w/pattern, injected 0xdddddddd, TEST regtest FAIL at 443667cyc, 2026-10-09 |
 | G3 | Fault: UART corrupt | PASS | results/raw/fault_uart_tampered.log, results/raw/fault_uart_check.log | Tampered stream REJECTED (25/24 pkts), 2026-10-09 |
