@@ -381,3 +381,15 @@ accounting from this file.
   (SAVE does sp-124, x5 at +12). Firmware computes sp-112 in naked asm before
   the ecall. TCB pxTopOfStack confirms the stack location.
 - Status: testing in progress.
+
+### G2 update: address derivation does not match hardware
+- Tried four injection timing strategies: immediate (too early, overwritten),
+  polling for non-X (never observed), trap-watcher (missed trap), fixed-delay
+  (too early, old=X), hybrid delay+poll (save never observed at 0x103d0).
+- The firmware-derived address (sp-112 = 0x103d0) does not match where the
+  port actually saves x5. The port's SAVE macro analysis may miss an offset
+  (e.g., ISR stack switch, or the ecall uses a different sp than the task's).
+- Verdict: BLOCKED. The injection address derivation is incorrect; the actual
+  saved-context SRAM location needs to be determined via a different method
+  (e.g., watching the CPU's store operations in Verilator, or instrumenting
+  the port's SAVE macro).
