@@ -9,8 +9,6 @@ for _d in /usr/bin "$HOME/workspace/building-ai-computer/toolchains/icarus/deb/u
 done
 [ -n "$IVL_BIN" ] || { echo "no iverilog found"; exit 1; }
 MMCU="$HOME/workspace/Muse-mcu"
-IVL_BIN=""; for d in /usr/bin "$HOME/workspace/building-ai-computer/toolchains/icarus/deb/usr/bin"; do if [ -x "/iverilog" ]; then IVL_BIN=""; break; fi; done
-[ -n "" ] || { echo "no iverilog found"; exit 1; }
 HEXDIR="${1:-$MMCU/fw/build/arch}"
 SIGDIR="$MMCU/results/raw/arch"
 mkdir -p "$SIGDIR"
