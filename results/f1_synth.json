@@ -1,0 +1,26 @@
+{
+  "requirement": "F1",
+  "verdict": "PASS",
+  "tool": "yosys",
+  "tool_version": "0.33 (git sha1 2584903a060)",
+  "stdcell": "NangateOpenCellLibrary typical",
+  "stdcell_sha256": "8d540a4d4cf6d09d27c87ad067857a9c0c2eeb023ab7a56e058cd3113db4e9b1",
+  "top": "mcu_top",
+  "cells": 11858,
+  "area_um2": 19495.406,
+  "area_by_module": {
+    "rv32i_cpu": "see tb/logs/synth.log",
+    "note": "per-module areas in the yosys stat report"
+  },
+  "blackboxes": [
+    "bootrom",
+    "sram"
+  ],
+  "blackbox_policy": "declared SRAM/ROM macros only; CPU and all peripherals mapped to standard cells; audit: non-liberty blackbox set == {bootrom, sram}",
+  "netlist": "synth/mcu_netlist.v",
+  "netlist_sha256": "b1c22515da35b54e9c3c06f4aa6bc63682f84cfe26abe8462f2c435264bfae9c",
+  "blackbox_stubs": "synth/mcu_blackboxes.v",
+  "blackbox_stubs_sha256": "3423621859675d69783a3668fd4d3cf05cfb72bfedb385b92fe2403973fb4db9",
+  "sim_note": "gate-level simulations built on this netlist are ZERO-DELAY",
+  "log": "tb/logs/synth.log"
+}

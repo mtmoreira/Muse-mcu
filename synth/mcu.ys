@@ -1,0 +1,55 @@
+# synth/mcu.ys — F1 open-source synthesis of the full Muse MCU platform.
+#
+# Tool:   Yosys 0.33 (git sha1 2584903a060)  (manifest tool_versions.synth)
+# Target: Nangate45 typical liberty (manifest tool_versions.stdcell)
+# Top:    mcu_top  (CPU + bus + CLINT + GPIO + UART0 + SPI0)
+#
+# Memory policy (declared, see README.md): bootrom and sram are converted to
+# blackbox macros with the Yosys `blackbox` command BEFORE synthesis, so no
+# memory array is ever mapped to flip-flops. The CPU and ALL peripherals are
+# synthesized to standard cells. The blackbox stubs are written separately
+# with `write_verilog -blackboxes`; the driver (run_synth.sh) audits that the
+# blackbox set is exactly {bootrom, sram} and fails otherwise.
+#
+# Run from the repo root:  yosys -l tb/logs/synth.log synth/mcu.ys
+# (or via the driver:      synth/run_synth.sh)
+
+# (Yosys 0.33 script files have no `set`; the liberty path is absolute below.)
+
+# --- read inputs ---------------------------------------------------------
+read_liberty -lib /home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib
+
+read_verilog -sv rtl/rv32i_cpu.sv
+read_verilog -sv rtl/bus_interconnect.sv
+read_verilog -sv rtl/bootrom.sv
+read_verilog -sv rtl/sram.sv
+read_verilog -sv rtl/clint.sv
+read_verilog -sv rtl/gpio.sv
+read_verilog -sv rtl/uart.sv
+read_verilog -sv rtl/spi_master.sv
+read_verilog -sv rtl/mcu_top.sv
+
+hierarchy -check -top mcu_top
+
+# --- declared memory blackboxes (NOTHING else may be blackboxed) ---------
+blackbox bootrom
+blackbox sram
+
+# --- generic synthesis + technology mapping ------------------------------
+synth -top mcu_top
+
+dfflibmap -liberty /home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib
+abc -liberty /home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib
+clean
+
+# --- reports --------------------------------------------------------------
+stat -liberty /home/hatch/workspace/pdk-dl/nangate45/NangateOpenCellLibrary_typical.lib
+
+# --- outputs ---------------------------------------------------------------
+write_verilog synth/mcu_netlist.v
+write_verilog -blackboxes synth/mcu_blackboxes.v
+
+# NOTE: the blackbox audit (exactly {bootrom, sram}) is enforced by the
+# driver run_synth.sh, which exits nonzero on any violation. Yosys 0.33's
+# `select` cannot reliably enumerate the removed blackbox modules, so the
+# audit parses the -blackboxes artifact instead (see README.md).
