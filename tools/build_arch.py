@@ -94,28 +94,47 @@ def build_one(test_src, name):
 
 
 def spike_golden(name, spike_elf, timeout=120):
-    """Run the Spike ELF, parse HTIF hex dump -> results/raw/arch/<name>.spike.sig.
+    """Run the Spike ELF, capture the +signature= dump -> results/raw/arch/<name>.spike.sig.
+
+    The Spike shim (tb/arch/riscv_arch_test_spike.h) ends the test with an
+    HTIF shutdown (tohost = 1); Spike's +signature= dump (keyed off the
+    begin_signature/end_signature symbols, +signature-granularity=4 so each
+    line is one 32-bit word) captures the signature region at exit. The
+    first dumped word is the word count N; the next N words are the
+    signature. This replaces the earlier HTIF-console approach, which hung:
+    this Spike build never acks console writes via fromhost.
 
     .spike.sig format matches the tb's .dut.sig format (tb/arch/README.md):
     N signature words, one `%08x` per line, no count header.
     """
     sig_path = os.path.join(RESULTS, name + ".spike.sig")
+    raw_path = os.path.join(BUILD, name + ".spike.raw")
     try:
         r = subprocess.run(
-            [SPIKE, "--isa=rv32i_zicsr", "-m0x0:0x40000", spike_elf],
+            [SPIKE, "--isa=rv32i_zicsr", "-m0x0:0x40000",
+             "+signature=" + raw_path, "+signature-granularity=4", spike_elf],
             capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return False, "spike timeout after %ds" % timeout
     if r.returncode != 0:
         return False, "spike exit=%d stderr=%s" % (r.returncode, r.stderr.strip()[:300])
-    words = [ln.strip() for ln in r.stdout.splitlines()
-             if HEXLINE.match(ln.strip())]
+    try:
+        with open(raw_path) as f:
+            words = [ln.strip() for ln in f if HEXLINE.match(ln.strip())]
+    except OSError as e:
+        return False, "no signature dump: %s" % e
+    finally:
+        if os.path.exists(raw_path):
+            os.remove(raw_path)
     if not words:
-        return False, "no hex words on stdout (got %d lines)" % len(r.stdout.splitlines())
+        return False, "empty signature dump"
+    n = int(words[0], 16)
+    if n < 1 or n > 4096 or 1 + n > len(words):
+        return False, "bad count %d (dumped %d words)" % (n, len(words))
     with open(sig_path, "w") as f:
-        for w in words:
+        for w in words[1:1 + n]:
             f.write(w + "\n")
-    return True, "%d words" % len(words)
+    return True, "%d words" % n
 
 
 def dut_hex(name, dut_elf):
@@ -123,17 +142,33 @@ def dut_hex(name, dut_elf):
 
     The runner globs `*.hex` in fw/build/arch/, so the DUT hex is named
     `<name>.hex` (the `.dut.elf`/`.spike.elf` names are kept distinct).
+
+    The .hex is a FLAT 32-bit word image from byte 0x0 (tb/arch/README.md):
+    words [0:16384) are the ROM image, words [16384:] are the SRAM-resident
+    part (.arch_data at 0x10000, .signature, .tohost); the testbench splits
+    them into dut.rom.mem / dut.ram.mem. If the binary is shorter than
+    16384 words, the ROM part is padded with jal x0,0 so no ROM word stays X.
+    (tools/elf_to_hex.py is a firmware-ROM tool capped at 16384 words and
+    drops the SRAM part, so it cannot be used here.)
     """
+    import struct
     hex_path = os.path.join(BUILD, name + ".hex")
     bin_path = os.path.join(BUILD, name + ".dut.bin")
     r = run([os.path.join(TOOLCHAIN, "riscv-none-elf-objcopy"),
              "-O", "binary", dut_elf, bin_path])
     if r.returncode != 0:
         raise RuntimeError("objcopy failed for %s" % name)
-    r = run([sys.executable, os.path.join(ROOT, "tools", "elf_to_hex.py"),
-             bin_path, hex_path])
-    if r.returncode != 0:
-        raise RuntimeError("elf_to_hex failed for %s" % name)
+    with open(bin_path, "rb") as f:
+        data = f.read()
+    if len(data) % 4:
+        data += b"\x00" * (4 - len(data) % 4)
+    words = list(w for (w,) in struct.iter_unpack("<I", data))
+    ROM_WORDS = 16384
+    if len(words) < ROM_WORDS:
+        words += [0x0000006F] * (ROM_WORDS - len(words))  # jal x0,0
+    with open(hex_path, "w") as f:
+        for w in words:
+            f.write("%08x\n" % w)
     os.remove(bin_path)
 
 
@@ -164,6 +199,10 @@ def main():
 
     built = failed = 0
     for src, name in tests:
+        # Guard: fw/build/arch was observed to vanish mid-run once (another
+        # worker's clean step?); recreate per test so it can't kill the batch.
+        os.makedirs(BUILD, exist_ok=True)
+        os.makedirs(RESULTS, exist_ok=True)
         try:
             dut_elf, spike_elf = build_one(src, name)
             dut_hex(name, dut_elf)

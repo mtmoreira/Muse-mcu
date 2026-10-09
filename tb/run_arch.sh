@@ -11,7 +11,8 @@ done
 MMCU="$HOME/workspace/Muse-mcu"
 HEXDIR="${1:-$MMCU/fw/build/arch}"
 SIGDIR="$MMCU/results/raw/arch"
-mkdir -p "$SIGDIR"
+LOGDIR="$MMCU/tb/logs"
+mkdir -p "$SIGDIR" "$LOGDIR"
 
 $IVL_BIN/iverilog -g2012 -o "$MMCU/tb/build/sim_arch.vvp" \
   "$MMCU/tb/tb_arch.sv" "$MMCU"/rtl/*.sv
@@ -22,13 +23,19 @@ if [ ${#HEXES[@]} -eq 0 ]; then
   exit 2
 fi
 
+# Per-test signature word index from fw/build/arch/sigbase.json
+# (default 0x6000 = byte 0x00018000; I-jal-00 is 0x9000 = 0x00024000).
+sigwidx() {
+  python3 -c "import json,sys; print('%x' % (int(json.load(open('$MMCU/fw/build/arch/sigbase.json')).get(sys.argv[1],'0x00018000'),16)>>2))" "$1"
+}
+
 pass=0; fail=0
 for hx in "${HEXES[@]}"; do
   name="$(basename "$hx" .hex)"
   sig="$SIGDIR/$name.dut.sig"
-  log="$MMCU/tb/build/run_arch_$name.log"
+  log="$LOGDIR/run_arch_$name.log"
   timeout 600 $IVL_BIN/vvp "$MMCU/tb/build/sim_arch.vvp" "+hex=$hx" "+name=$name" \
-    "+sigfile=$sig" > "$log" 2>&1
+    "+sigfile=$sig" "+sigbase=$(sigwidx "$name")" > "$log" 2>&1
   ec=$?
   echo "exit=$ec" >> "$log"
   if [ $ec -eq 0 ] && grep -q "TB_ARCH $name: PASS" "$log"; then
@@ -44,8 +51,8 @@ if [ ! -x "$MMCU/tools/check_arch.py" ] && [ ! -f "$MMCU/tools/check_arch.py" ];
   echo "ARCH: tools/check_arch.py not present (firmware worker pending); golden compare BLOCKED"
   exit 2
 fi
-python3 "$MMCU/tools/check_arch.py" --sigdir "$SIGDIR" 2>&1 | tee "$MMCU/tb/build/check_arch.log"
-if grep -q "ARCH 45/45 PASS" "$MMCU/tb/build/check_arch.log"; then
+python3 "$MMCU/tools/check_arch.py" --sigdir "$SIGDIR" 2>&1 | tee "$LOGDIR/check_arch.log"
+if grep -q "ARCH 45/45 PASS" "$LOGDIR/check_arch.log"; then
   echo "ARCH: ALL 45/45 PASS"
   exit 0
 else

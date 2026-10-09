@@ -23,12 +23,14 @@ module tb_arch;
 
   // Bus maps SRAM byte A to word index A[16:2] (no base subtraction).
   localparam int DONE_WIDX = 32'h7FFC; // 0x0001FFF0
-  localparam int SIG_WIDX  = 32'h6000; // 0x00018000
+  localparam int DEFAULT_SIG_WIDX = 32'h6000; // 0x00018000
   localparam logic [31:0] PASS_MAGIC = 32'hDEADBEEF;
   localparam logic [31:0] FAIL_MAGIC = 32'hDEADDEAD;
+  // Largest flat .hex image: arch_jal.ld XMEM is 192 KiB = 49152 words.
+  localparam int HEX_MAX = 65536;
 
-  string h, tname, sigpath;
-  int unsigned cycles;
+  string h, tname, sigpath, sigbase_s;
+  int unsigned cycles, sig_widx;
   logic ecall_seen;
 
   always @(negedge clk) begin
@@ -36,8 +38,10 @@ module tb_arch;
   end
 
   initial begin
-    int fd;
+    int fd, nwords, i;
     logic [31:0] done, count;
+    logic [31:0] heximg [0:HEX_MAX-1];
+    logic [31:0] dummy;
     if (!$value$plusargs("hex=%s", h)) begin
       $display("TB_ARCH: FAIL: missing +hex"); $fatal(1, "TB_ARCH FAIL");
     end
@@ -45,7 +49,43 @@ module tb_arch;
     if (!$value$plusargs("sigfile=%s", sigpath)) begin
       $display("TB_ARCH: FAIL: missing +sigfile"); $fatal(1, "TB_ARCH FAIL");
     end
-    $readmemh(h, dut.rom.mem);
+    // Per-test signature word index (default 0x6000 = 0x00018000;
+    // I-jal-00 uses 0x9000 = 0x00024000). Passed by tb/run_arch.sh from
+    // fw/build/arch/sigbase.json (hex digits, no 0x prefix).
+    sig_widx = DEFAULT_SIG_WIDX;
+    if ($value$plusargs("sigbase=%s", sigbase_s)) begin
+      if ($sscanf(sigbase_s, "%h", sig_widx) != 1) begin
+        $display("TB_ARCH: FAIL: bad +sigbase=%s", sigbase_s);
+        $fatal(1, "TB_ARCH FAIL");
+      end
+    end
+
+    // The .hex is a flat 32-bit word image from byte 0x0: words [0:16384)
+    // go to ROM, words [16384:] to SRAM at word index 0x4000+i
+    // (SRAM word index is byte_addr[16:2], no base subtraction).
+    fd = $fopen(h, "r");
+    if (fd == 0) begin
+      $display("TB_ARCH: FAIL: cannot open %s", h); $fatal(1, "TB_ARCH FAIL");
+    end
+    nwords = 0;
+    while (!$feof(fd)) begin
+      if ($fscanf(fd, "%h", dummy) == 1) nwords = nwords + 1;
+    end
+    $fclose(fd);
+    if (nwords == 0 || nwords > HEX_MAX) begin
+      $display("TB_ARCH: FAIL: bad hex length %0d", nwords);
+      $fatal(1, "TB_ARCH FAIL");
+    end
+    $readmemh(h, heximg);
+    for (i = 0; i < 16384 && i < nwords; i = i + 1)
+      dut.rom.mem[i] = heximg[i];
+    // SRAM word index is byte_addr[16:2] truncated to the 15-bit SRAM
+    // index (bus_interconnect.sv), so mask to [14:0] exactly like the bus.
+    // This matters for I-jal-00: its signature lives at byte 0x00024000
+    // (word 0x9000), which the bus aliases to mem[0x1000].
+    for (i = 16384; i < nwords; i = i + 1)
+      dut.ram.mem[(32'h4000 + (i - 16384)) & 32'h7FFF] = heximg[i];
+    $display("TB_ARCH %s: loaded %0d words, sig_widx=%h", tname, nwords, sig_widx);
 
     repeat (8) @(posedge clk);
     @(negedge clk);
@@ -75,7 +115,8 @@ module tb_arch;
     end
 
     // Dump the signature: word count in first word, then the words.
-    count = dut.ram.mem[SIG_WIDX];
+    // Mask to the 15-bit SRAM index like the bus (see load loop above).
+    count = dut.ram.mem[sig_widx & 32'h7FFF];
     if ($isunknown(count) || count == 0 || count > 4096) begin
       $display("TB_ARCH %s: FAIL: bad signature count %h", tname, count);
       $fatal(1, "TB_ARCH FAIL");
@@ -87,7 +128,7 @@ module tb_arch;
     end
     for (int i = 0; i < count; i++) begin
       logic [31:0] w;
-      w = dut.ram.mem[SIG_WIDX + 1 + i];
+      w = dut.ram.mem[(sig_widx + 1 + i) & 32'h7FFF];
       if ($isunknown(w)) begin
         $display("TB_ARCH %s: FAIL: signature word %0d X", tname, i);
         $fclose(fd);

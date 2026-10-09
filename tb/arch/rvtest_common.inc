@@ -93,13 +93,19 @@ test_data_begin:
 
 // Signature region, pinned at SIGBASE_ADDR by arch.ld. Word 0 holds the
 // word count (also rewritten at RVTEST_CODE_END as a liveness proof).
+// begin_signature/end_signature alias the region so Spike's +signature=
+// dump (see riscv_arch_test_spike.h) captures it at exit.
 #define RVTEST_SIG_SETUP \
     .section .signature, "aw", @progbits; \
     .align 2; \
+    .globl begin_signature; \
+begin_signature: \
     .globl signature_begin; \
 signature_begin: \
     .word SIGUPD_COUNT; \
     .space SIGUPD_COUNT * 4; \
+    .globl end_signature; \
+end_signature: \
     .globl signature_end; \
 signature_end: \
     .text
