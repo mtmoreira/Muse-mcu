@@ -220,3 +220,15 @@ accounting from this file.
 **What broke:** A7 v3 firmware printed TEST uart_rx PASS with all 64 bytes, but testbench timed out waiting for PASS marker.
 **Root cause:** Testbench bug. get_byte() used `@(sink.byte_ev)` to wait for bytes. SystemVerilog events don't persist; if multiple bytes arrived before the waiter started, the event was missed and get_byte blocked forever.
 **Fix:** Changed get_byte to poll `sink.byte_q.size()` on posedge clk instead of waiting on the event. (tb_rtos/tb_preempt are safe: they drain the queue after each event.)
+
+## 2026-10-09: C1 preemption gate failure (firmware/tb event-rate mismatch)
+**What broke:** C1 (tb_preempt + canonical preempt_test) failed: event 1 passed (427 cycles) but event 2 timed out ("HP not reached within 100000 cycles of MEI entry").
+**Root cause:** Test design flaw, not RTL. The HP task printed a 22-char MARK via 115200-baud UART on EVERY wake (~96k cycles), but the testbench pulsed MEI every 20k cycles. Debug sim (PC sampling) proved the CPU was healthy: HP in uart_puts, MEI ISRs firing, queue sends working. The HP task simply couldn't finish one MARK before 5 more events piled up; the tb's HP-PC-range re-entry criterion couldn't be met. The earlier 52/52 PASS used a stub firmware without per-event UART prints.
+**Fix:** preempt_test.c now prints MARK only every 10 events (avg ~9.5k cycles/event, under the 20k spacing). The tb's architectural latency measurement (PC trace) is unchanged; MARKs were only progress indicators. Rebuilt and rerunning C1.
+**Lesson:** Keep per-event firmware work an order of magnitude faster than the testbench stimulus period; measure latency via the architectural trace, not via slow I/O.
+
+## 2026-10-09: C1 event-rate mismatch, round 2
+**What broke:** After the every-10-events MARK fix, C1 reached event 10 (all 427 cycles) but event 11 timed out.
+**Root cause:** Same class of issue. Every 10th event still cost ~96k cycles of UART while the tb pulsed every 20k cycles; events 11+ piled up behind the MARK-10 print and the tb's 100k-cycle HP re-entry window expired.
+**Fix:** Removed per-event UART from the HP task entirely. Per wake it now does only the GPIO_DBG_SCRATCH write (architectural marker, a few cycles) and re-blocks. Latency is measured by the tb's PC trace; the tb's own event log provides progress visibility. Final "TEST preempt PASS" still printed at 60 events.
+**Lesson:** In a latency-measurement gate, the device under measurement must do effectively zero work per stimulus; any I/O belongs outside the measured path.

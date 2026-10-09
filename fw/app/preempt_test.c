@@ -89,11 +89,10 @@ static void vHPTask( void * pvParameters )
         ulPreemptEvents++;
         GPIO_DBG_SCRATCH = ulPreemptEvents;
 
-        uart_puts( "MARK preempt " );
-        prvPutU32Dec( ulPreemptEvents );
-        uart_puts( " lost=" );
-        prvPutU32Dec( ulLostWakeups );
-        uart_putc( '\n' );
+        /* No per-event UART: a 22-char MARK costs ~96k cycles at 115200
+         * baud, far longer than the 20k-cycle event spacing, which piles up
+         * events and stalls the gate. The testbench measures latency via the
+         * architectural PC trace; progress is visible in its event log. */
 
         if( ( ulPreemptEvents >= PREEMPT_EVENTS_FOR_PASS ) && ( iPassDone == 0 ) )
         {
