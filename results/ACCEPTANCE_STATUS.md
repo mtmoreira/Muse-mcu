@@ -3,8 +3,8 @@ Contract v1.0.0 APPROVED. Updated as gates complete. Evidence in results/raw/.
 
 | ID | Title | Verdict | Evidence | Notes |
 |----|-------|---------|----------|-------|
-| A1 | RV32I arch tests (39) | PENDING | results/raw/arch/ | Arch worker running |
-| A2 | Zicsr arch tests (6) | PENDING | results/raw/arch/ | Arch worker running |
+| A1 | RV32I arch tests (39) | PASS | results/raw/arch/ | 39/39 sigs match Spike byte-exact, 2026-10-09 |
+| A2 | Zicsr arch tests (6) | PASS | results/raw/arch/ | 6/6 sigs match Spike byte-exact, 2026-10-09 |
 | A3 | Reset/startup (3 variants) | PASS | tb/build/run_reset_s*.log | 3/3, rerun 2026-10-09 |
 | A4 | Trap behavior (8 cases) | PASS | tb/build/run_trap.log | 8/8, rerun 2026-10-09 |
 | A5 | Timer/ext interrupts | PASS | tb/build/run_irq.log | 20+4 events, rerun 2026-10-09 |
