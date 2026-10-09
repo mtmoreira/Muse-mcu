@@ -138,3 +138,24 @@ accounting from this file.
 - P3a deviations noted for follow-up: none blocking; A5's UART byte-value
   check was relaxed to defined-ness only pending this fix (now fixed — P3b's
   A7 run will exercise full byte values).
+
+## 2026-10-08 — P3b report: C1 + A8 PASS; A7 unblocked by UART fix; rest written
+- C1 tb_preempt: ALL PASS — 52 events, max latency 42 cycles (bound 2000),
+  52/52 within bound, 12 LP/HP MARK transitions. NOTE: run used the worker's
+  stub firmware; must re-run with P4b's real preempt_test for the gate.
+- A8 tb_spi: ALL PASS — 256/256 MISO bytes match PRBS image, firmware XOR
+  CHECKSUM matched, 0 pin-protocol violations. (Worker fixed a tb race: tb
+  read CHECKSUM before UART finished transmitting it.)
+- A7 tb_uart_rx: tb logic validated via stubs; was blocked on the UART RTL
+  bug — now fixed (ec47ec0), re-run pending P4a's uart_rx_test firmware.
+- Written but not yet run (VM heavily loaded): tb_timer_gpio (A9),
+  tb_app (D1 + DEMO1 live narration + VCD capture + check_app.py),
+  tb_fault_notick (G1), tb_fault_ctx (G2, injection mechanism validated:
+  logged injection at cycle 208509 addr 0x20000), tb_fault_uart (G3).
+  G1/G2/G3 runs await P4b's rtos_queue/rtos_regtest/app_demo images.
+- Firmware-interface notes: real fw does not print BOOT (made optional);
+  spi CHECKSUM is XOR lowercase hex; timer_gpio_test uses 1 Mbaud
+  (bauddiv=50); G2 needs MARK ctxsave + 200k-cycle window (relayed to P4b).
+- vvp nonzero-exit propagation through run scripts verified.
+- Evidence logs (local, results/raw/): preempt.log, spi.log, uart_rx.log,
+  fault_ctx.log, arch/.
