@@ -51,6 +51,8 @@ SMOKE = ["A3", "A4", "A6", "A8"]
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--skip", default="",
+                    help="comma-separated requirement IDs to skip (e.g. --skip F1)")
     args = ap.parse_args()
 
     manifest = yaml.safe_load(open(f"{ROOT}/acceptance/manifest.yaml"))
@@ -62,6 +64,10 @@ def main():
     if args.smoke:
         ids = [i for i in SMOKE if i in ids]
         print("SMOKE subset:", ids)
+    skip = {s.strip() for s in args.skip.split(",") if s.strip()}
+    if skip:
+        ids = [i for i in ids if i not in skip]
+        print("Skipping:", sorted(skip))
 
     results = {}
     for rid in ids:
