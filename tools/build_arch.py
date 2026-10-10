@@ -206,7 +206,11 @@ def main():
         try:
             dut_elf, spike_elf = build_one(src, name)
             dut_hex(name, dut_elf)
-            ok, msg = spike_golden(name, spike_elf)
+            # SKIP_SPIKE=1: signatures already committed; just build DUT hex
+            if os.environ.get("SKIP_SPIKE") == "1":
+                ok, msg = True, "skipped (SKIP_SPIKE=1)"
+            else:
+                ok, msg = spike_golden(name, spike_elf)
         except RuntimeError as e:
             print("FAIL %-28s %s" % (name, e))
             failed += 1
