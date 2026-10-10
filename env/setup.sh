@@ -192,17 +192,29 @@ else
       if [ "$FAILURES" = 0 ]; then
         IVL_SRC="$DL_DIR/iverilog-src"; IVL_PRE="$TOOLCHAIN_ROOT/icarus-12.0"
         IVL_LOG="$DL_DIR/iverilog-build.log"
-        [ -d "$IVL_SRC" ] || git clone -q https://github.com/steveicarus/iverilog.git "$IVL_SRC" \
-          || fail "iverilog clone failed"
+        IVL_TGZ="$DL_DIR/iverilog-v12_0.tar.gz"
+        IVL_URL="https://github.com/steveicarus/iverilog/archive/refs/tags/v12_0.tar.gz"
+        # Use the release tarball (pre-generated configure) instead of
+        # git+autoconf.sh: avoids running autoconf.sh which triggers
+        # macOS XProtect "Malicious Script Blocked" on some systems.
+        if [ ! -d "$IVL_SRC" ]; then
+          log "downloading iverilog v12_0 release tarball"
+          curl -sSL -o "$IVL_TGZ" "$IVL_URL" || fail "iverilog download failed"
+          mkdir -p "$IVL_SRC" && tar xzf "$IVL_TGZ" -C "$IVL_SRC" --strip-components=1 \
+            || fail "iverilog extract failed"
+        fi
         # v12_0 predates newer Xcode: driver/main.c uses _NSGetExecutablePath
         # without including <mach-o/dyld.h> (implicit decl = hard error now).
-        # Skip if already applied (idempotent re-runs).
-        ( cd "$IVL_SRC" && git checkout -q "$IVL_TAG" \
-          && ( git apply --reverse --check "$ROOT/env/patches/iverilog-v12_0-macos-dyld.patch" >/dev/null 2>&1 \
-               || git apply "$ROOT/env/patches/iverilog-v12_0-macos-dyld.patch" ) ) \
-          || fail "iverilog macOS patch failed"
-        ( cd "$IVL_SRC" && git checkout -q "$IVL_TAG" && sh autoconf.sh >"$IVL_LOG" 2>&1 \
-          && ./configure --prefix="$IVL_PRE" >>"$IVL_LOG" 2>&1 \
+        # Idempotent: only patch if the include is missing.
+        if [ "$OS" = mac ] && ! grep -q "mach-o/dyld.h" "$IVL_SRC/driver/main.c" 2>/dev/null; then
+          log "applying macOS dyld.h fix to driver/main.c"
+          # Insert #include <mach-o/dyld.h> after the last #include line
+          awk '/^#include/ { last=NR } { lines[NR]=$0 } END { for (i=1;i<=NR;i++) { print lines[i]; if (i==last) print "#include <mach-o/dyld.h>" } }' \
+            "$IVL_SRC/driver/main.c" > "$IVL_SRC/driver/main.c.fixed" \
+            && mv "$IVL_SRC/driver/main.c.fixed" "$IVL_SRC/driver/main.c" \
+            || fail "iverilog macOS patch failed"
+        fi
+        ( cd "$IVL_SRC" && ./configure --prefix="$IVL_PRE" >"$IVL_LOG" 2>&1 \
           && make -j"$NCPU" >>"$IVL_LOG" 2>&1 && make install >>"$IVL_LOG" 2>&1 ) \
           || { fail "iverilog source build failed (log: $IVL_LOG)"; tail -20 "$IVL_LOG" >&2; }
         export PATH="$IVL_PRE/bin:$PATH"
