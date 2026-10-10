@@ -9,10 +9,38 @@
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+# Self-heal the environment before anything else: prefer Homebrew bash 5+
+# (macOS /bin/bash is 3.2, no mapfile) and force the setup.sh-built
+# toolchain (Icarus 12.x, spike) first on PATH. This makes the script
+# work regardless of the caller's shell/PATH.
+if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ] && [ -x /opt/homebrew/bin/bash ]; then
+  exec /opt/homebrew/bin/bash "$0" "$@"
+fi
+for _d in "$HOME/workspace/toolchains/icarus-12.0/bin" \
+          "$HOME/workspace/toolchains/spike-mcu/bin" \
+          /opt/homebrew/bin; do
+  if [ -d "$_d" ]; then
+    case ":$PATH:" in *":$_d:"*) ;; *) PATH="$_d:$PATH";; esac
+  fi
+done
+export PATH
+unset _d
+
 if [ -z "${TOOLCHAIN:-}" ] && [ -f "$ROOT/env/activate.sh" ]; then
   # shellcheck disable=SC1091
   source "$ROOT/env/activate.sh"
 fi
+
+# Re-assert after activate.sh in case it reordered PATH.
+for _d in "$HOME/workspace/toolchains/icarus-12.0/bin" \
+          "$HOME/workspace/toolchains/spike-mcu/bin" \
+          /opt/homebrew/bin; do
+  if [ -d "$_d" ]; then
+    case ":$PATH:" in *":$_d:"*) ;; *) PATH="$_d:$PATH";; esac
+  fi
+done
+export PATH
+unset _d
 
 # Preflight: gate scripts need bash 4+ (mapfile) and Icarus 12.x (v13
 # hard-fails on this RTL's constant selects in always_*).
