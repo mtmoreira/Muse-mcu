@@ -9,7 +9,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 FW_HEX="${FW_HEX:-fw/build/preempt_test.hex}"
 FW_ELF="${FW_ELF:-${FW_HEX%.hex}.elf}"
-HP_SYM="${HP_SYM:-hp_task_fn}"
+HP_SYM="${HP_SYM:-vHPTask}"
 TIMEOUT_S="${TIMEOUT_S:-1800}"
 TC=${TOOLCHAIN_ROOT:-$HOME/work/toolchains}/riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin
 OUT=build/tb_out
