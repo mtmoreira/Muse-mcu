@@ -12,8 +12,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 HOURS="${HOURS:-6}"
-# find log files modified in the last HOURS hours under the log dirs
-LOGS=$(find tb/build tb/logs results/raw -type f -mmin -$((HOURS * 60)) 2>/dev/null)
+# find log files (text only, no compiled .vvp binaries) modified in the last HOURS hours
+LOGS=$(find tb/build tb/logs results/raw -type f -mmin -$((HOURS * 60)) \
+  ! -name "*.vvp" 2>/dev/null)
 
 check() { # check <gate-id> <marker>
   local id="$1" marker="$2" hit=""
@@ -35,14 +36,14 @@ check A5 "TB_IRQ: ALL PASS"
 check A6 "TB_MEMMAP: ALL PASS"
 check A7 "TB_UART_RX: ALL PASS"
 check A8 "TB_SPI: ALL PASS"
-check A9 "TB_TIMER_GPIO: ALL PASS"
-check B1 "TB_RTOS regtest: ALL PASS"
-check B2 "TB_RTOS queue: ALL PASS"
-check B3 "TB_RTOS sema: ALL PASS"
-check B4 "TB_RTOS notify: ALL PASS"
-check B5 "TB_RTOS timer: ALL PASS"
-check B6 "TB_RTOS isr: ALL PASS"
-check B7 "TB_RTOS blocktim: ALL PASS"
+check A9 "A9: ALL PASS"
+check B1 "RTOS_VLT regtest: ALL PASS"
+check B2 "RTOS_VLT queue: ALL PASS"
+check B3 "RTOS_VLT sema: ALL PASS"
+check B4 "RTOS_VLT notify: ALL PASS"
+check B5 "RTOS_VLT timer: ALL PASS"
+check B6 "RTOS_VLT isr: ALL PASS"
+check B7 "RTOS_VLT blocktim: ALL PASS"
 check C1 "TB_PREEMPT: ALL PASS"
 check D1 "TB_APP: ALL PASS"
 check D2 "TB_APP: ALL PASS"

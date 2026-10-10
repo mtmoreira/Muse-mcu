@@ -14,4 +14,11 @@ if [ -z "${TOOLCHAIN:-}" ] && [ -f "$ROOT/env/activate.sh" ]; then
   source "$ROOT/env/activate.sh"
 fi
 
-exec python3 "$ROOT/tools/run_acceptance.py" "$@"
+# Tee a timestamped copy of the full output so a lost terminal/clipboard
+# never loses the verdict summary.
+TS=$(date +%Y%m%d-%H%M%S)
+OUT="$ROOT/results/run_$TS.log"
+mkdir -p "$ROOT/results"
+echo "run_tests: full output also saved to $OUT"
+python3 "$ROOT/tools/run_acceptance.py" "$@" 2>&1 | tee "$OUT"
+echo "run_tests: output saved to $OUT"
