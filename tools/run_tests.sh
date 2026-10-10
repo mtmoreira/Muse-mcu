@@ -14,6 +14,28 @@ if [ -z "${TOOLCHAIN:-}" ] && [ -f "$ROOT/env/activate.sh" ]; then
   source "$ROOT/env/activate.sh"
 fi
 
+# Preflight: gate scripts need bash 4+ (mapfile) and Icarus 12.x (v13
+# hard-fails on this RTL's constant selects in always_*).
+if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+  echo "run_tests: FAIL: need bash 4+ (have ${BASH_VERSION:-unknown}); on macOS: brew install bash" >&2
+  echo "run_tests: then re-run with /opt/homebrew/bin first on PATH" >&2
+  exit 2
+fi
+if ! command -v iverilog >/dev/null 2>&1; then
+  echo "run_tests: FAIL: iverilog not on PATH (run env/setup.sh first)" >&2
+  exit 2
+fi
+IVL_VER=$(iverilog -V 2>&1 | head -1)
+case "$IVL_VER" in
+  *"version 12."*) ;;
+  *)
+    echo "run_tests: FAIL: need Icarus Verilog 12.x, found: $IVL_VER" >&2
+    echo "run_tests: put the setup.sh-built v12 first on PATH:" >&2
+    echo "run_tests:   export PATH=\"\$HOME/workspace/toolchains/icarus-12.0/bin:\$PATH\"" >&2
+    exit 2
+    ;;
+esac
+
 # Tee a timestamped copy of the full output so a lost terminal/clipboard
 # never loses the verdict summary.
 TS=$(date +%Y%m%d-%H%M%S)
