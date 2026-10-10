@@ -34,7 +34,7 @@ HP_SYM="${HP_SYM:-vHPTask}"
 MIN_EVENTS="${MIN_EVENTS:-10}"
 TIMEOUT_S="${TIMEOUT_S:-1800}"
 TC="${TOOLCHAIN:-$HOME/workspace/toolchains/riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin}"
-[ -x "$TC/riscv-none-elf-gcc" ] || TC=~/workspace/building-ai-computer/toolchains/riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin
+[ -x "$TC/riscv-none-elf-gcc" ] || TC=${TOOLCHAIN_ROOT:-$HOME/work/toolchains}/riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin
 LOG=tb/logs/gate_preempt_vlt.log
 BIN=build/gate/vobj_preempt/tb_gate_preempt
 mkdir -p build/gate tb/logs

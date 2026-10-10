@@ -11,7 +11,7 @@ FW_HEX="${FW_HEX:-fw/build/preempt_test.hex}"
 FW_ELF="${FW_ELF:-${FW_HEX%.hex}.elf}"
 HP_SYM="${HP_SYM:-hp_task_fn}"
 TIMEOUT_S="${TIMEOUT_S:-1800}"
-TC=~/workspace/building-ai-computer/toolchains/riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin
+TC=${TOOLCHAIN_ROOT:-$HOME/work/toolchains}/riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin
 OUT=build/tb_out
 mkdir -p "$OUT" results/raw
 [ -f "$FW_HEX" ] || { echo "RUNNER: FAIL: firmware hex not found: $FW_HEX"; exit 1; }

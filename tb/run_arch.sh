@@ -7,7 +7,7 @@ IVL_BIN=""
 if command -v iverilog >/dev/null 2>&1; then
   IVL_BIN="$(dirname "$(command -v iverilog)")"
 else
-  for _d in /usr/bin "$HOME/workspace/building-ai-computer/toolchains/icarus/deb/usr/bin"; do
+  for _d in /usr/bin "${TOOLCHAIN_ROOT:-$HOME/work/toolchains}/icarus-12.0/bin"; do
     if [ -x "$_d/iverilog" ]; then IVL_BIN="$_d"; break; fi
   done
 fi
