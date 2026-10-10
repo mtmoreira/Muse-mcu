@@ -5,12 +5,10 @@
 .PHONY: acceptance smoke firmware
 
 firmware:
-	@for a in hello uart_rx_test spi_test timer_gpio_test pingpong rtos_regtest rtos_queue rtos_sema rtos_notify rtos_timer rtos_isr rtos_blocktim preempt_test app_demo; do \
-	  $(MAKE) -C fw APP=$$a || exit 1; \
-	done
+	bash fw/build.sh
 
 acceptance: firmware
-	python3 tools/run_acceptance.py
+	bash tools/run_tests.sh
 
 smoke:
-	python3 tools/run_acceptance.py --smoke
+	bash tools/run_tests.sh --smoke

@@ -7,4 +7,8 @@
 # in tb/run_app.sh to avoid duplicating the 24-message workload logic.
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+if [ -z "${TOOLCHAIN:-}" ] && [ -f "$ROOT/env/activate.sh" ]; then
+  # shellcheck disable=SC1091
+  source "$ROOT/env/activate.sh"
+fi
 exec bash "$ROOT/tb/run_app.sh" "$@"
