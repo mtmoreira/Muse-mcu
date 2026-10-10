@@ -106,17 +106,19 @@ echo "F1: cells=$CELLS area=${AREA} um^2"
 NET_SHA=$(sha256sum synth/mcu_netlist.v | awk '{print $1}')
 BB_SHA=$(sha256sum synth/mcu_blackboxes.v | awk '{print $1}')
 LIB_SHA=$(sha256sum $PDK_LIB | awk '{print $1}')
+YOSYS_VER=$(yosys -V 2>/dev/null | head -1)
+echo "F1: yosys version: $YOSYS_VER"
 echo "F1: netlist sha256=$NET_SHA"
 echo "F1: blackbox-stub sha256=$BB_SHA"
 
-python3 - "$NET_SHA" "$BB_SHA" "$LIB_SHA" "$CELLS" "$AREA" <<'EOF'
+python3 - "$NET_SHA" "$BB_SHA" "$LIB_SHA" "$CELLS" "$AREA" "$YOSYS_VER" <<'EOF'
 import json, sys
-net_sha, bb_sha, lib_sha, cells, area = sys.argv[1:6]
+net_sha, bb_sha, lib_sha, cells, area, yosys_ver = sys.argv[1:7]
 rec = {
     "requirement": "F1",
     "verdict": "PASS",
     "tool": "yosys",
-    "tool_version": "0.33 (git sha1 2584903a060)",
+    "tool_version": yosys_ver,
     "stdcell": "NangateOpenCellLibrary typical",
     "stdcell_sha256": lib_sha,
     "top": "mcu_top",
