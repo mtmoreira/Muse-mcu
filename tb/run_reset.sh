@@ -2,6 +2,7 @@
 # tb_reset runner (A3): 3 seeded runs, N in {1,8,100}. Exits nonzero on failure.
 set -uo pipefail
 MMCU="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+mkdir -p "$MMCU/tb/build"
 # Icarus location (robust to VM replacement): prefer /usr/bin, fall back to local toolchain copy.
 IVL_BIN=""
 if command -v iverilog >/dev/null 2>&1; then

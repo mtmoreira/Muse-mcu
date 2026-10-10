@@ -28,3 +28,16 @@ done
 
 if [ "$FAIL" != 0 ]; then echo "build.sh: FAIL"; exit 1; fi
 echo "build.sh: ALL OK ($(echo "$APPS" | wc -w | tr -d ' ') apps)"
+
+# A8 SPI flash image: 256-byte deterministic PRBS (tb/tb_spi.sv loads it
+# with $readmemh and compares byte-for-byte, so content only needs to be
+# deterministic, not meaningful).
+echo "build.sh: spi_img.hex (A8)"
+python3 "$ROOT/tb/stub_fw/gen_spi_img.py" "$ROOT/fw/build/spi_img.bin" >/dev/null
+python3 -c "
+data = open('$ROOT/fw/build/spi_img.bin','rb').read()
+assert len(data) == 256
+with open('$ROOT/fw/build/spi_img.hex','w') as f:
+    f.write('\n'.join('%02x' % b for b in data) + '\n')
+"
+echo "build.sh: spi_img.hex OK"

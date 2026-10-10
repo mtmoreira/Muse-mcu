@@ -2,6 +2,7 @@
 # tb_irq runner (A5): timer + 4 external interrupt sources. Exits nonzero on failure.
 set -uo pipefail
 MMCU="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+mkdir -p "$MMCU/tb/build"
 # Icarus location (robust to VM replacement): prefer /usr/bin, fall back to local toolchain copy.
 IVL_BIN=""
 if command -v iverilog >/dev/null 2>&1; then

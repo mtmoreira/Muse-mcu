@@ -13,6 +13,7 @@ else
 fi
 [ -n "$IVL_BIN" ] || { echo "no iverilog found (install icarus-verilog or set PATH)"; exit 1; }
 MMCU="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+mkdir -p "$MMCU/tb/build"
 HEXDIR="${1:-$MMCU/fw/build/arch}"
 SIGDIR="$MMCU/results/raw/arch"
 LOGDIR="$MMCU/tb/logs"
