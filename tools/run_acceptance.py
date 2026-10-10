@@ -87,7 +87,8 @@ def main():
         print(f"\n===== {rid}: {' '.join(cmd)} =====", flush=True)
         try:
             r = subprocess.run(cmd, cwd=ROOT, timeout=8 * 3600,
-                               capture_output=True, text=True)
+                               capture_output=True, text=True,
+                               errors="replace")
             ok = (r.returncode == 0)
             print(f"{rid}: {'PASS' if ok else 'FAIL'} (exit={r.returncode})")
             if not ok:
