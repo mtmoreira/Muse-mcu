@@ -33,9 +33,10 @@ ARCH_TEST = os.path.join(ROOT, "third_party", "riscv_arch_test")
 BUILD = os.path.join(ROOT, "fw", "build", "arch")
 RESULTS = os.path.join(ROOT, "results", "raw", "arch")
 
-TOOLCHAIN = os.path.expanduser(
-    "~/workspace/building-ai-computer/toolchains/riscv/"
-    "xpack-riscv-none-elf-gcc-15.2.0-1/bin")
+TOOLCHAIN = os.environ.get("TOOLCHAIN",
+    os.path.join(os.environ.get("TOOLCHAIN_ROOT",
+                 os.path.expanduser("~/work/toolchains")),
+                 "riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin"))
 CC = os.path.join(TOOLCHAIN, "riscv-none-elf-gcc")
 SPIKE = os.environ.get("SPIKE_BIN",
         os.path.expanduser("~/workspace/toolchains/spike-mcu/bin/spike"))
