@@ -194,6 +194,13 @@ else
         IVL_LOG="$DL_DIR/iverilog-build.log"
         [ -d "$IVL_SRC" ] || git clone -q https://github.com/steveicarus/iverilog.git "$IVL_SRC" \
           || fail "iverilog clone failed"
+        # v12_0 predates newer Xcode: driver/main.c uses _NSGetExecutablePath
+        # without including <mach-o/dyld.h> (implicit decl = hard error now).
+        # Skip if already applied (idempotent re-runs).
+        ( cd "$IVL_SRC" && git checkout -q "$IVL_TAG" \
+          && ( git apply --reverse --check "$ROOT/env/patches/iverilog-v12_0-macos-dyld.patch" >/dev/null 2>&1 \
+               || git apply "$ROOT/env/patches/iverilog-v12_0-macos-dyld.patch" ) ) \
+          || fail "iverilog macOS patch failed"
         ( cd "$IVL_SRC" && git checkout -q "$IVL_TAG" && sh autoconf.sh >"$IVL_LOG" 2>&1 \
           && ./configure --prefix="$IVL_PRE" >>"$IVL_LOG" 2>&1 \
           && make -j"$NCPU" >>"$IVL_LOG" 2>&1 && make install >>"$IVL_LOG" 2>&1 ) \

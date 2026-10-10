@@ -1,0 +1,13 @@
+--- a/driver/main.c
++++ b/driver/main.c
+@@ -64,6 +64,10 @@
+ # include  <libiberty.h>
+ #endif
+ #endif
++
++#ifdef __APPLE__
++# include <mach-o/dyld.h>
++#endif
+ #include  <fcntl.h>
+ 
+ #ifdef HAVE_GETOPT_H
