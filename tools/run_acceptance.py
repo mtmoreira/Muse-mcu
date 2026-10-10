@@ -50,8 +50,8 @@ GATES = {
     "D1": ["bash", "demo/run_demo.sh"],
     "D2": ["bash", "demo/run_demo.sh"],  # self-test verified in D1 UART log
     "F1": ["bash", "synth/run_synth.sh"],
-    "F2": ["bash", "synth/run_gate_app.sh"],
-    "F3": ["bash", "synth/run_gate_preempt.sh"],
+    "F2": ["bash", "tb/run_gate_app.sh"],
+    "F3": ["bash", "tb/run_gate_preempt.sh"],
     "G1": ["bash", "tb/run_fault_notick.sh"],
     "G2": ["bash", "tb/run_fault_ctx.sh"],
     "G3": ["bash", "tb/run_fault_uart.sh"],

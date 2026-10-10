@@ -40,4 +40,6 @@ assert len(data) == 256
 with open('$ROOT/fw/build/spi_img.hex','w') as f:
     f.write('\n'.join('%02x' % b for b in data) + '\n')
 "
-echo "build.sh: spi_img.hex OK"
+# flash.hex is the same SPI image; D1/D2/demo expect this name
+cp "$ROOT/fw/build/spi_img.hex" "$ROOT/fw/build/flash.hex"
+echo "build.sh: spi_img.hex OK (also flash.hex)"
