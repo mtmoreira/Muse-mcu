@@ -4,10 +4,14 @@
 # test's signature with tb_arch, then runs tools/check_arch.py (firmware
 # Icarus location (robust to VM replacement): prefer /usr/bin, fall back to local toolchain copy.
 IVL_BIN=""
-for _d in /usr/bin "$HOME/workspace/building-ai-computer/toolchains/icarus/deb/usr/bin"; do
-  if [ -x "$_d/iverilog" ]; then IVL_BIN="$_d"; break; fi
-done
-[ -n "$IVL_BIN" ] || { echo "no iverilog found"; exit 1; }
+if command -v iverilog >/dev/null 2>&1; then
+  IVL_BIN="$(dirname "$(command -v iverilog)")"
+else
+  for _d in /usr/bin "$HOME/workspace/building-ai-computer/toolchains/icarus/deb/usr/bin"; do
+    if [ -x "$_d/iverilog" ]; then IVL_BIN="$_d"; break; fi
+  done
+fi
+[ -n "$IVL_BIN" ] || { echo "no iverilog found (install icarus-verilog or set PATH)"; exit 1; }
 MMCU="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HEXDIR="${1:-$MMCU/fw/build/arch}"
 SIGDIR="$MMCU/results/raw/arch"
