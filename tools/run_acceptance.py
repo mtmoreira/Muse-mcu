@@ -19,11 +19,14 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Enforce toolchain PATH before running gates: the setup.sh-built Icarus
 # 12.x must come before any Homebrew v13. Uses TOOLCHAIN_ROOT env var
 # (set by activate.sh or caller), defaults to ~/work/toolchains.
+# Also ensures GNU coreutils (timeout) is available on macOS.
 _tcr = os.environ.get("TOOLCHAIN_ROOT", os.path.expanduser("~/work/toolchains"))
-for _d in (f"{_tcr}/icarus-12.0/bin", f"{_tcr}/spike-mcu/bin", "/opt/homebrew/bin"):
+_brew = "/opt/homebrew"
+for _d in (f"{_tcr}/icarus-12.0/bin", f"{_tcr}/spike-mcu/bin",
+           f"{_brew}/opt/coreutils/libexec/gnubin", f"{_brew}/bin"):
     if os.path.isdir(_d) and _d not in os.environ.get("PATH", "").split(os.pathsep):
         os.environ["PATH"] = _d + os.pathsep + os.environ.get("PATH", "")
-del _tcr, _d
+del _tcr, _d, _brew
 
 # Map requirement ID -> gate command (run from ROOT). Each must exit 0 on PASS.
 GATES = {
