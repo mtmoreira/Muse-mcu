@@ -16,8 +16,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ] && [ -x /opt/homebrew/bin/bash ]; then
   exec /opt/homebrew/bin/bash "$0" "$@"
 fi
-for _d in "$HOME/workspace/toolchains/icarus-12.0/bin" \
-          "$HOME/workspace/toolchains/spike-mcu/bin" \
+_TCR="${TOOLCHAIN_ROOT:-$HOME/workspace/toolchains}"
+for _d in "$_TCR/icarus-12.0/bin" \
+          "$_TCR/spike-mcu/bin" \
           /opt/homebrew/bin; do
   if [ -d "$_d" ]; then
     case ":$PATH:" in *":$_d:"*) ;; *) PATH="$_d:$PATH";; esac
@@ -32,8 +33,9 @@ if [ -z "${TOOLCHAIN:-}" ] && [ -f "$ROOT/env/activate.sh" ]; then
 fi
 
 # Re-assert after activate.sh in case it reordered PATH.
-for _d in "$HOME/workspace/toolchains/icarus-12.0/bin" \
-          "$HOME/workspace/toolchains/spike-mcu/bin" \
+_TCR="${TOOLCHAIN_ROOT:-$HOME/workspace/toolchains}"
+for _d in "$_TCR/icarus-12.0/bin" \
+          "$_TCR/spike-mcu/bin" \
           /opt/homebrew/bin; do
   if [ -d "$_d" ]; then
     case ":$PATH:" in *":$_d:"*) ;; *) PATH="$_d:$PATH";; esac
@@ -59,7 +61,8 @@ case "$IVL_VER" in
   *)
     echo "run_tests: FAIL: need Icarus Verilog 12.x, found: $IVL_VER" >&2
     echo "run_tests: put the setup.sh-built v12 first on PATH:" >&2
-    echo "run_tests:   export PATH=\"\$HOME/workspace/toolchains/icarus-12.0/bin:\$PATH\"" >&2
+    echo "run_tests:   export TOOLCHAIN_ROOT=\$HOME/work/toolchains" >&2
+    echo "run_tests:   export PATH=\"\$TOOLCHAIN_ROOT/icarus-12.0/bin:\$PATH\"" >&2
     exit 2
     ;;
 esac
