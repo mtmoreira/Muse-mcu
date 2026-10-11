@@ -47,6 +47,9 @@ def main():
     args = ap.parse_args()
 
     img, table = build(args.seed & M32)
+    # Pad to 64 KiB with 0xFF (erased flash); spiflash.v expects full range
+    if len(img) < 65536:
+        img = img + bytes([0xFF] * (65536 - len(img)))
     with open(args.out, "w") as f:
         for b in img:
             f.write(f"{b:02x}\n")
