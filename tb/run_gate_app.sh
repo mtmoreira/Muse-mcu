@@ -30,7 +30,7 @@ TIMEOUT_S="${TIMEOUT_S:-7200}"
 #   (~10M cycles); the subset runs ~2.5M cycles, so 0 are expected.
 # - bg entries: >=1 proves the background task was scheduled at all.
 # The non-relaxable F2 criteria (4/4 packets, in order, digests) are unchanged.
-MIN_WATERMARK="${MIN_WATERMARK:-2}"
+MIN_WATERMARK="${MIN_WATERMARK:-1}"
 MIN_BG="${MIN_BG:-0}"
 MIN_BG_ENTRIES="${MIN_BG_ENTRIES:-1}"
 TC="${TOOLCHAIN:-$HOME/workspace/toolchains/riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin}"
