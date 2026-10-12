@@ -112,6 +112,8 @@ static void vCheckTask( void * pvParameters )
         ulOps = prvNotifyOps();
         uart_puts( "MARK notify " );
         prvPutU32Dec( ulOps );
+        uart_puts( " tick=" );
+        prvPutU32Dec( xTaskGetTickCount() );
         uart_putc( '\n' );
 
         /* Only evaluate the still-running status every NOTIFY_STALL_CHECK_DIV
