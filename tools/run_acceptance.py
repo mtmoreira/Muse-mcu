@@ -12,7 +12,10 @@ import argparse
 import os
 import subprocess
 import sys
-import yaml
+try:
+    import yaml
+except ImportError:
+    yaml = None  # stdlib fallback parser below (runner needs 3 fields)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -60,14 +63,56 @@ GATES = {
 SMOKE = ["A3", "A4", "A6", "A8"]
 
 
+def load_manifest():
+    """Load acceptance/manifest.yaml. Uses PyYAML when available; the
+    stdlib fallback extracts only what the runner reads (contract_version,
+    status, and the requirement ids, in order) so the suite stays
+    self-contained on machines without PyYAML (e.g. a fresh macOS python3).
+    """
+    path = f"{ROOT}/acceptance/manifest.yaml"
+    if yaml is not None:
+        return yaml.safe_load(open(path))
+    import re
+    version = status = None
+    reqs = []
+    in_reqs = False
+    for line in open(path):
+        if not in_reqs:
+            m = re.match(r"contract_version:\s*(\S+)", line)
+            if m:
+                version = m.group(1)
+            m = re.match(r"status:\s*(\S+)", line)
+            if m:
+                status = m.group(1)
+            if re.match(r"requirements:\s*$", line):
+                in_reqs = True
+        else:
+            if line and not line[0].isspace():
+                break  # next top-level section ends the requirements list
+            m = re.match(r"\s*-\s*id:\s*(\S+)", line)
+            if m:
+                reqs.append({"id": m.group(1)})
+                continue
+            m = re.match(r"\s+status:\s*(\S+)", line)
+            if m and reqs:
+                reqs[-1]["status"] = m.group(1)
+    if version is None or status is None or not reqs:
+        raise SystemExit("run_acceptance: manifest fallback parse failed "
+                         "(install PyYAML or check manifest.yaml)")
+    return {"contract_version": version, "status": status,
+            "requirements": reqs}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--skip", default="",
                     help="comma-separated requirement IDs to skip (e.g. --skip F1)")
+    ap.add_argument("--only", default="",
+                    help="comma-separated requirement IDs to run exclusively")
     args = ap.parse_args()
 
-    manifest = yaml.safe_load(open(f"{ROOT}/acceptance/manifest.yaml"))
+    manifest = load_manifest()
     reqs = manifest["requirements"]
     print(f"Contract {manifest['contract_version']} status={manifest['status']}: "
           f"{len(reqs)} requirements")
@@ -76,11 +121,16 @@ def main():
     if args.smoke:
         ids = [i for i in SMOKE if i in ids]
         print("SMOKE subset:", ids)
+    only = {s.strip() for s in args.only.split(",") if s.strip()}
+    if only:
+        ids = [i for i in ids if i in only]
+        print("Only:", sorted(only))
     skip = {s.strip() for s in args.skip.split(",") if s.strip()}
     if skip:
         ids = [i for i in ids if i not in skip]
         print("Skipping:", sorted(skip))
 
+    selected = list(ids)
     results = {}
     for rid in ids:
         cmd = GATES[rid]
@@ -99,16 +149,26 @@ def main():
             print(f"{rid}: FAIL (timeout)")
             results[rid] = "FAIL"
 
-    # Requirements without a gate command are reported, never passed.
+    # Requirements that did not run are reported honestly:
+    # WITHDRAWN (contract-level) and SKIPPED (excluded by --only/--skip/
+    # --smoke) are not failures; a selected requirement with no gate
+    # command is NOT_RUN and counts as not passing.
     for r in reqs:
         if r["id"] not in results:
-            results[r["id"]] = "NOT_RUN"
-            print(f"{r['id']}: NOT_RUN (no gate command)")
+            if r.get("status") == "WITHDRAWN":
+                results[r["id"]] = "WITHDRAWN"
+                print(f"{r['id']}: WITHDRAWN (per contract)")
+            elif r["id"] not in selected:
+                results[r["id"]] = "SKIPPED"
+                print(f"{r['id']}: SKIPPED (not selected)")
+            else:
+                results[r["id"]] = "NOT_RUN"
+                print(f"{r['id']}: NOT_RUN (no gate command)")
 
     print("\n===== SUMMARY =====")
     for rid, v in results.items():
         print(f"  {rid}: {v}")
-    failed = [k for k, v in results.items() if v != "PASS"]
+    failed = [k for k, v in results.items() if v in ("FAIL", "NOT_RUN")]
     if failed:
         print(f"\nRESULT: FAIL ({len(failed)} not passing: {failed})")
         return 1
