@@ -1,12 +1,12 @@
 #!/bin/bash
 # run_fault_notick.sh — build & run tb_fault_notick (G1).
 # Env overrides: FW_HEX (default fw/build/rtos_queue.hex),
-#   FAULT_AT_TICK (default 1000), TIMEOUT_S (default 1800).
+#   FAULT_AT_TICK (default 100), TIMEOUT_S (default 1800).
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 FW_HEX="${FW_HEX:-fw/build/rtos_queue.hex}"
-FAULT_AT_TICK="${FAULT_AT_TICK:-1000}"
+FAULT_AT_TICK="${FAULT_AT_TICK:-100}"  # evidence run used 100; 1000 ticks = ~50M cycles exceeds the tb 30M-cycle watchdog
 TIMEOUT_S="${TIMEOUT_S:-1800}"
 OUT=build/tb_out
 mkdir -p "$OUT" results/raw

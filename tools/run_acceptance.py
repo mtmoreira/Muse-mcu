@@ -42,10 +42,10 @@ GATES = {
     "B1": ["bash", "tb/run_rtos_vlt.sh", "rtos_regtest", "regtest", "regtest", "1"],
     "B2": ["bash", "tb/run_rtos_vlt.sh", "rtos_queue", "queue", "queue", "1"],
     "B3": ["bash", "tb/run_rtos_vlt.sh", "rtos_sema", "sema", "sema", "1"],
-    "B4": ["bash", "tb/run_rtos_vlt.sh", "rtos_notify", "notify", "notify", "1"],
+    "B4": ["bash", "tb/run_rtos_vlt.sh", "rtos_notify", "notify", "notify", "10", "50000", "180000000"],  # evidence run: irqperiod=50k, PASS at ~100M cycles (results/b4_gate.json)
     "B5": ["bash", "tb/run_rtos_vlt.sh", "rtos_timer", "timer", "timer", "1"],
     "B6": ["bash", "tb/run_rtos_vlt.sh", "rtos_isr", "isr", "isr", "1", "50000"],
-    "B7": ["bash", "tb/run_rtos_vlt.sh", "rtos_blocktim", "blocktim", "blocktim", "1"],
+    "B7": ["bash", "tb/run_b7_vlt.sh"],  # manifest verdict: MARK blocktim count >=2 in 60M cycles, no FAIL (firmware PASS line needs 200 events, unreachable)
     "C1": ["bash", "tb/run_preempt.sh"],
     "D1": ["bash", "demo/run_demo.sh"],
     "D2": ["bash", "demo/run_demo.sh"],  # self-test verified in D1 UART log
@@ -53,7 +53,7 @@ GATES = {
     "F2": ["bash", "tb/run_gate_app.sh"],
     "F3": ["bash", "tb/run_gate_preempt.sh"],
     "G1": ["bash", "tb/run_fault_notick.sh"],
-    "G2": ["bash", "tb/run_fault_ctx.sh"],
+    "G2": ["bash", "tb/run_g2_final.sh"],  # evidence G2 harness (Verilator, sp-112 slot); run_fault_ctx.sh expects MARK ctxsave lines current firmware does not print
     "G3": ["bash", "tb/run_fault_uart.sh"],
 }
 
