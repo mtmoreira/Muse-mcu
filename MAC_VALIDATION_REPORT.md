@@ -1,8 +1,42 @@
 # Muse MCU Mac Validation Report
-**Date:** 2026-10-11  
+**Date:** 2026-10-11 (updated 2026-10-12)  
 **Platform:** MacBook (Apple Silicon, ARM64), macOS  
 **Branch:** `work/mcu-acceptance-v1`  
-**Result:** 27/31 active requirements PASS
+**Result:** 31/31 active requirements PASS (updated 2026-10-12)
+
+## Update 2026-10-12: 31/31, and a retracted diagnosis
+
+The four failures below (B4, B7, G1, G2) were NOT ARM or Verilator
+issues. That diagnosis, recorded in the original version of this
+report, was wrong. Root cause: the gate mapping written during the
+Mac bring-up diverged from the 2026-10-09 evidence runs:
+
+- B4 ran without the evidence run's +irqperiod=50000 stimulus and with
+  a 60M-cycle timeout instead of ~100M+; the 500-op threshold was
+  unreachable. Fixed: minmarks=10, irqperiod=50000, timeout=180M.
+- B7 was judged by the firmware PASS line, which needs 200 timeout
+  events (~1.66B cycles) and can never print in the 60M budget. The
+  manifest verdict is MARK blocktim count >= 2 with 0 errors; new
+  script tb/run_b7_vlt.sh evaluates the MARK counts (reached 4).
+- G1 used fault_at_tick=1000 (~50M cycles), past the testbench's own
+  30M-cycle watchdog; the evidence run used 100. Default corrected.
+- G2 pointed at the obsolete tb/run_fault_ctx.sh, which expects MARK
+  ctxsave lines the current firmware never prints. The evidence
+  harness is tb/run_g2_final.sh.
+
+Fixed in commit 630dfaf, plus commit 254a40d (runner --only flag,
+honest SKIPPED/WITHDRAWN verdicts, PyYAML now optional). All four
+gates verified locally with Verilator 5.052 reproducing the evidence
+numbers exactly (B4 ops=514, 40 marks; B7 count 4; G1 finish
+timestamp identical to the evidence log; G2 injection at cycle
+239384), then re-run on the Mac on 2026-10-12: B4 PASS, B7 PASS,
+G1 PASS, G2 PASS (results/run_20261012-230314.log). Combined with
+the 27 gates below, the Mac is at 31/31 active requirements. The
+Verilator 5.032 build is not required; 5.052 works.
+
+The sections below are the original 2026-10-11 report, kept for the
+record. Its "Failing Gates" section and the ARM-codegen explanation
+are superseded by this update.
 
 ## Passing Gates (27)
 
