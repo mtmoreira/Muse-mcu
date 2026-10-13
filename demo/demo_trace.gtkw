@@ -1,0 +1,27 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Oct 13 18:11:25 2026
+[*]
+[dumpfile] "demo_trace.vcd"
+[savefile] "demo/demo_trace.gtkw"
+[timestart] 9877650000
+[size] 1500 850
+[pos] -1 -1
+*-28.370001 9877650000 9877650000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[markername] Afirst SPI CS
+[sst_width] 269
+[signals_width] 126
+[sst_expanded] 1
+[sst_vpaned_height] 157
+@28
+tb_app.dut.clk
+tb_app.dut.rst
+tb_app.dut.spi_cs_n
+tb_app.dut.spi_sck
+tb_app.dut.spi_mosi
+tb_app.dut.spi_miso
+tb_app.dut.uart_tx
+@22
+tb_app.dut.dbg_pc[31:0]
+[pattern_trace] 1
+[pattern_trace] 0
