@@ -1,0 +1,28 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Fri Oct 16 02:26:26 2026
+[*]
+[dumpfile] "/home/hatch/workspace/Muse-mcu/demo/image/runs/fault-20261013-222600-r4/stage07_uart.vcd"
+[dumpfile_mtime] "Thu Oct 15 23:51:44 2026"
+[dumpfile_size] 2209392
+[savefile] "/home/hatch/workspace/Muse-mcu/demo/image/runs/fault-20261013-222600-r4/stage07.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-14.761568 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 269
+[signals_width] 78
+[sst_expanded] 1
+[sst_vpaned_height] 157
+@200
+-UART
+@28
+tb_image.dut.uart_tx
+@200
+-Trace
+-(task
+-events)
+@23
+tb_image.dut.gpio0.scratch_q[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

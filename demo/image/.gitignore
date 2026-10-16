@@ -1,0 +1,7 @@
+# Host Python environment (rebuilt by demo.sh setup)
+.venv/
+
+# Combined stage02 load-window traces (~123 MB each) exceed
+# GitHub's 100 MB file limit. Retained in the working tree and
+# bit-reproducible via demo.sh reproduce; see README.md.
+runs/*/stage02_load_overview.vcd

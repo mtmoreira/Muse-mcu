@@ -1,0 +1,13 @@
+{
+ "protocol_pass": 1,
+ "reason": "complete",
+ "packet_bytes_expected": 4148,
+ "packet_bytes_seen": 4148,
+ "last_byte_cycle": 20510648,
+ "extra_bytes_in_observation": 0,
+ "cs35_start_cycle": 942919,
+ "cs35_end_cycle": 968189,
+ "fault_enabled": 1,
+ "fault_fired": 1,
+ "fault": {"cycle": 1940573, "addr": "0x0001d8e4", "be": "0x00000001", "intended": "0x00000000", "committed": "0x00000080", "readback_byte": "0x00"}
+}

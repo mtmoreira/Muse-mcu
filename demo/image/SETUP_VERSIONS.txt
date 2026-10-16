@@ -1,0 +1,9 @@
+setup record 2026-10-16T02:26:27Z
+python: Python 3.12.3
+iverilog: 
+gtkwave: Usage: gtkwave [OPTION]... [DUMPFILE] [SAVEFILE] [RCFILE]
+gcc: riscv-none-elf-gcc (xPack GNU RISC-V Embedded GCC x86_64) 15.2.0
+cv2 4.11.0
+numpy 2.5.4
+pillow 11.3.0
+matplotlib 3.10.6

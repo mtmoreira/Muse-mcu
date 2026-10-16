@@ -1,0 +1,11 @@
+{
+  "kind": "extra",
+  "frame_id": 2,
+  "width": 64,
+  "height": 64,
+  "format": "GRAY8 row-major",
+  "source": "Procedural 64x64 pattern: concentric rings, cross, checkerboard corner on mid gray (PIL drawing, this script)",
+  "generator": "demo/image/tools/gen_input_image.py (PIL)",
+  "raw_sha256": "c74c210172803cca28f7c392bfbde7fb203d80981180938844d160fc00976a04",
+  "png_sha256": "e44d28812fe1f87c114e430a153e25d9e22b7a52cdee67e49861ab69d0e166fa"
+}

@@ -1,0 +1,17 @@
+{
+  "reference": {
+    "function": "cv2.Sobel",
+    "ddepth": "CV_16S",
+    "ksize": 3,
+    "scale": 1,
+    "delta": 0,
+    "borderType": "BORDER_CONSTANT",
+    "post": "zero outermost 1px frame of Gx/Gy; widen int32; out = min(255, |Gx| + |Gy|) as uint8"
+  },
+  "cv2_version": "4.11.0",
+  "numpy_version": "2.5.4",
+  "input_raw_sha256": "c74c210172803cca28f7c392bfbde7fb203d80981180938844d160fc00976a04",
+  "ref_out_sha256": "49181a23c2430acf267a46e4a89f1d596b51ac09a3fafe65d918ecde6a596d71",
+  "gx_sha256": "a2cf8697a40d5cf87396bb85e25c6b54aeccb47a03f6724c0edc76eccd6078a9",
+  "gy_sha256": "97fdaec491c8b3fe8274e44093a84dc51d10a7df8e48ab03ec4b5e2702f99b4c"
+}

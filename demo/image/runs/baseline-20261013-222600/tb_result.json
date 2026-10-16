@@ -1,0 +1,12 @@
+{
+ "protocol_pass": 1,
+ "reason": "complete",
+ "packet_bytes_expected": 4148,
+ "packet_bytes_seen": 4148,
+ "last_byte_cycle": 20510648,
+ "extra_bytes_in_observation": 0,
+ "cs35_start_cycle": 942919,
+ "cs35_end_cycle": 968189,
+ "fault_enabled": 0,
+ "fault_fired": 0
+}

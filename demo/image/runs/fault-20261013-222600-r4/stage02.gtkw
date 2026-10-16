@@ -1,0 +1,48 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Fri Oct 16 02:26:22 2026
+[*]
+[dumpfile] "/home/hatch/workspace/Muse-mcu/demo/image/runs/fault-20261013-222600-r4/stage02_load_overview.vcd"
+[dumpfile_mtime] "Thu Oct 15 23:50:46 2026"
+[dumpfile_size] 123071830
+[savefile] "/home/hatch/workspace/Muse-mcu/demo/image/runs/fault-20261013-222600-r4/stage02.gtkw"
+[timestart] 190000
+[size] 1000 600
+[pos] -1 -1
+*-23.609148 1478340 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 269
+[signals_width] 158
+[sst_expanded] 1
+[sst_vpaned_height] 157
+@200
+-SPI
+@28
+tb_image.dut.spi_cs_n
+tb_image.dut.spi_sck
+tb_image.dut.spi_mosi
+tb_image.dut.spi_miso
+@200
+-SRAM
+-writes
+@22
+tb_image.dut.ram.d_wstrb[3:0]
+tb_image.dut.ram.d_waddr[14:0]
+tb_image.dut.ram.d_wdata[31:0]
+@200
+-UART
+-+
+-trace
+@28
+tb_image.dut.uart_tx
+@22
+tb_image.dut.gpio0.scratch_q[31:0]
+@200
+-Core
+@23
+tb_image.dut.dbg_pc[31:0]
+@29
+tb_image.dut.dbg_trap_taken
+@23
+tb_image.dut.dbg_mcause[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,35 @@
+Recovery note (2026-10-14)
+The reproduce of 2026-10-13 (freeze FREEZE-20261013-222600.txt)
+completed the baseline run (checker exit 0) but the fault sim was
+killed by an environment/process loss at about 23:11 PDT during the
+UART export phase: no tb_result.json, partial writes.csv. The partial
+directory runs/fault-20261013-222600 is preserved as the record of the
+aborted attempt. The fault and post-freeze extra runs were completed
+later under the SAME frozen ELF (sha256 verified fee1d28b3dfd10770b3389dc618d264513ca6b691263fd85d7b99c9aa07336ba) as
+runs/fault-20261013-222600-r2 and runs/extra-20261013-222600, using the
+same commands as demo.sh reproduce. The extra input was generated
+after the freeze (the pre-freeze generator test artifact was deleted
+and regenerated).
+
+Update (2026-10-15): the first recovery attempt also lost its fault
+sim (fault-20261013-222600-r2) to a VM replacement at about 17:43 PDT
+on 2026-10-14, mid-export at cycle ~12.37M; that partial directory is
+preserved too. The fault run was restarted as
+fault-20261013-222600-r3 under the same frozen ELF, followed by the
+extra run, via a restartable finisher that skips completed steps.
+The measured reproduction time in README.md counts only the final
+successful sequence.
+
+Update (2026-10-15): fault-20261013-222600-r3 completed and its
+functional evidence is correct (exactly one mismatch at (32,32) in
+the stored and UART images; packet digest valid), but the negative
+control reported NOT CONFIRMED because the testbench's end-of-run
+SRAM readback used the wrong array index ((addr-0x10000)>>2 instead
+of d_addr[16:2], the mapping bus_interconnect.sv actually uses).
+The readback byte in r3's tb_result.json (0x00) is therefore wrong;
+the committed byte (0x80) is corroborated by the write monitor log,
+the stored-image reconstruction, and the UART payload + digest.
+tb_image.sv was fixed (testbench only; firmware untouched) and the
+fault run was repeated as fault-20261013-222600-r4. Independently,
+make_gtkw.py died on a 120 s gtkwave timeout for the 123 MB stage02
+trace; timeout raised to 1200 s with per-stage failure isolation.

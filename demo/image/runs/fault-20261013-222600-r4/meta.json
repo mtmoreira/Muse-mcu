@@ -1,0 +1,4 @@
+{"kind": "main", "run_id": "fault-20261013-222600-r4", "fault": 1,
+ "input_raw": "/home/hatch/workspace/Muse-mcu/demo/image/inputs/main.raw", "input_json": "/home/hatch/workspace/Muse-mcu/demo/image/inputs/main.json",
+ "ref_dir": "/home/hatch/workspace/Muse-mcu/demo/image/refs/main", "flash_bin": "/home/hatch/workspace/Muse-mcu/demo/image/inputs/main_flash.bin",
+ "elf": "/home/hatch/workspace/Muse-mcu/fw/build/image_demo.elf"}

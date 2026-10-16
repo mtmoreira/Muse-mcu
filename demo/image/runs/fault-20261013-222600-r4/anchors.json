@@ -1,0 +1,146 @@
+{
+  "run": "fault-20261013-222600-r4",
+  "kind": "fault",
+  "clock_hz": 50000000,
+  "cycle_ns": 20,
+  "stages": {
+    "01": {
+      "image": "assets/stage01_input.png",
+      "vcd": null,
+      "events": [
+        {
+          "name": "flash layout",
+          "note": "header 20 B at flash 0x000000; pixel (x,y) at 20 + y*64 + x; raw sha256 2af874354f1c2798..."
+        }
+      ]
+    },
+    "02": {
+      "image": "assets/stage02_load.png",
+      "vcd": "stage02_load_overview.vcd",
+      "t0_ns": 0,
+      "t1_ns": 35058100,
+      "events": [
+        {
+          "name": "first committed input write",
+          "cycle": 73917
+        },
+        {
+          "name": "last committed input write",
+          "cycle": 1752605
+        },
+        {
+          "name": "load-done trace",
+          "cycle": 1752629
+        }
+      ]
+    },
+    "03": {
+      "image": "assets/stage03_strip.png",
+      "vcd": "stage03_load_detail.vcd",
+      "t0_ns": 0,
+      "t1_ns": 510680,
+      "events": [
+        {
+          "name": "SPI read of row 32 starts (CS fall)",
+          "cycle": 942919
+        },
+        {
+          "name": "row 32 read ends (CS rise)",
+          "cycle": 968189
+        },
+        {
+          "name": "last SRAM write of row 32",
+          "cycle": 968178
+        }
+      ]
+    },
+    "04": {
+      "image": "assets/stage04_pixel.png",
+      "vcd": "stage06_writeback.vcd",
+      "t0_ns": 0,
+      "t1_ns": -1126220,
+      "events": [
+        {
+          "name": "Gx write for (32,32)",
+          "cycle": 1869189
+        },
+        {
+          "name": "Gy write for (32,32)",
+          "cycle": 1933984
+        }
+      ]
+    },
+    "05": {
+      "image": "assets/stage05_rtos.png",
+      "vcd": "stage05_rtos.vcd",
+      "t0_ns": 0,
+      "t1_ns": 1528840,
+      "events": [
+        {
+          "name": "load done",
+          "cycle": 1752629
+        },
+        {
+          "name": "combine stripe 2 done",
+          "cycle": 1828871
+        }
+      ]
+    },
+    "06": {
+      "image": "assets/stage06_writeback.png",
+      "vcd": "stage06_writeback.vcd",
+      "t0_ns": 281440,
+      "t1_ns": 305440,
+      "events": [
+        {
+          "name": "output write of pixel (32,32), offset 2080",
+          "cycle": 1940572
+        },
+        {
+          "name": "INJECTION (bit 7 flipped)",
+          "cycle": 1940573
+        }
+      ],
+      "fault": {
+        "cycle": 1940573,
+        "addr": "0x0001d8e4",
+        "be": "0x00000001",
+        "intended": "0x00000000",
+        "committed": "0x00000080",
+        "readback_byte": "0x80"
+      }
+    },
+    "07": {
+      "image": "assets/stage07_uart.png",
+      "vcd": "stage07_uart.vcd",
+      "t0_ns": 0,
+      "t1_ns": 86800,
+      "events": [
+        {
+          "name": "window opens at packet byte 2000"
+        }
+      ]
+    },
+    "08": {
+      "image": "assets/stage08_compare.png",
+      "vcd": null,
+      "events": [
+        {
+          "name": "checker: output_sram",
+          "note": "compared 4096 bytes, mismatches 1, pass False"
+        },
+        {
+          "name": "functional verdict",
+          "note": "FAIL"
+        }
+      ]
+    }
+  },
+  "evidence_hashes": {
+    "uart_capture.bin": "ad8117b1c80fe774330b22dd0c2c29bd25b3ef9bcc5f448cae39b2df99f62af3",
+    "writes.csv": "1194513f40ac1fbcc4d1ad8dbcddd92443756431fe58f7ddd094b8dfdd465580",
+    "events.csv": "3182356c1d2591958d6c8db2ff07e6c96b3d7e25bc31ab6ee0900393d17fcd7a",
+    "flash_bin": "460472afe196b15018c025cc4b459bf45e4b48aac4bd5e476b2478b251ac8580",
+    "results.json": "371e84da5994ae6e2d0bef412aad91344fbd6147b9b354a71fdaec8d691c25b9"
+  }
+}

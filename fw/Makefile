@@ -40,7 +40,7 @@ LDFLAGS := -T startup/linker.ld -nostdlib -Wl,--gc-sections
 BAREMETAL_APPS := hello uart_rx_test spi_test timer_gpio_test
 FREERTOS_APPS  := pingpong min_yield regtest2 \
                   rtos_regtest rtos_queue rtos_sema rtos_notify rtos_timer \
-                  rtos_isr rtos_blocktim preempt_test app_demo
+                  rtos_isr rtos_blocktim preempt_test app_demo image_demo
 
 # --- common sources ---
 CSRCS := startup/crt0.S drivers/string.c \
@@ -86,6 +86,9 @@ DSRC := $(REPO)/third_party/freertos_demos/blocktim.c
 endif
 ifeq ($(APP),app_demo)
 DSRC := sha256/sha256.c sha256/sha256_fw.c sha256/sha_selftest.c
+endif
+ifeq ($(APP),image_demo)
+DSRC := sha256/sha256.c sha256/sha256_fw.c
 endif
 
 ifneq ($(filter $(APP),$(FREERTOS_APPS)),)

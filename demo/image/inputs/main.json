@@ -1,0 +1,11 @@
+{
+  "kind": "main",
+  "frame_id": 1,
+  "width": 64,
+  "height": 64,
+  "format": "GRAY8 row-major",
+  "source": "Procedural 64x64 scene: gradient background, framed sun, bold letter M, diagonal, sea stripes (PIL drawing, this script)",
+  "generator": "demo/image/tools/gen_input_image.py (PIL)",
+  "raw_sha256": "2af874354f1c27987bc4a00f3fa8b58bc75eddeb7a4f6116f7c375060560f0e5",
+  "png_sha256": "439a721c5f2a2c0e454e055a38853910a51758ddef4d8feb9d9858399306b81b"
+}

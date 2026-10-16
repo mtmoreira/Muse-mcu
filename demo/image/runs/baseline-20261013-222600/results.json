@@ -1,0 +1,68 @@
+{
+  "functional": "PASS",
+  "checks": {
+    "spi_payload": {
+      "pass": true,
+      "transactions": 70,
+      "commands": [
+        "0xab",
+        "0x3",
+        "0x3",
+        "0x3",
+        "0x3",
+        "..."
+      ],
+      "header_read_matches_flash": true,
+      "payload_bytes": 4096,
+      "payload_matches_canonical": true
+    },
+    "input_sram": {
+      "pass": true,
+      "coverage": 4096,
+      "mismatches": []
+    },
+    "gradients_sram": {
+      "pass": true,
+      "gx_mismatches": 0,
+      "gy_mismatches": 0,
+      "gx_coverage": 8192,
+      "gy_coverage": 8192
+    },
+    "output_sram": {
+      "pass": true,
+      "coverage": 4096,
+      "mismatch_count": 0,
+      "mismatches": []
+    },
+    "uart_packet": {
+      "pass": true,
+      "length": 4148,
+      "magic_ok": true,
+      "fields_ok": true,
+      "digest_ok": true,
+      "payload_equals_stored_framebuffer": true
+    },
+    "uart_vs_ref": {
+      "pass": true,
+      "mismatch_count": 0,
+      "mismatches": []
+    },
+    "task_evidence": {
+      "pass": true,
+      "problems": []
+    },
+    "tb_protocol": {
+      "pass": true,
+      "protocol_pass": 1,
+      "reason": "complete",
+      "packet_bytes_expected": 4148,
+      "packet_bytes_seen": 4148,
+      "last_byte_cycle": 20510648,
+      "extra_bytes_in_observation": 0,
+      "cs35_start_cycle": 942919,
+      "cs35_end_cycle": 968189,
+      "fault_enabled": 0,
+      "fault_fired": 0
+    }
+  }
+}
