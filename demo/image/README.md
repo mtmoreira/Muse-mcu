@@ -133,9 +133,16 @@ total about 1 hour 50 minutes of compute.
   GTKWave build does not persist Tcl-set named markers into
   `.gtkw` files (verified empirically; the save file's marker
   slots stay unset), so open stages via `demo.sh show` or the
-  `.tcl` files to get the markers. The Mac launch path is
-  exercised during the owner's walkthrough and is pending until
-  then.
+  `.tcl` files to get the markers. Mac launch path exercised
+  2026-10-15: the owner's Homebrew GTKWave 3.4.0 opens the
+  committed views correctly (groups, signals, zoom window), but
+  that build has no Tcl support ("Tcl support not compiled into
+  gtkwave"), so it cannot run the `.tcl` launchers or generate
+  save files itself. On such a machine `make_gtkw.py` falls back
+  to templating each `.gtkw` from a sibling run's GTKWave-written
+  view, rewriting only the file references; the view content is
+  identical because the runs are deterministic (the templated
+  files were verified to open).
 - The combined stage02 load-window trace (about 123 MB per run)
   exceeds GitHub's 100 MB file limit and is not committed; it is
   retained in the working tree under each run directory and is

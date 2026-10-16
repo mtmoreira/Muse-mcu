@@ -117,6 +117,7 @@ def main():
         with open(tcl_path, "w") as f:
             f.write(tcl)
         gtkw_path = os.path.join(rd, f"stage{stage}.gtkw")
+        saved = False
         if have_gtk:
             save_tcl = tcl_path + ".save.tcl"
             with open(save_tcl, "w") as f:
@@ -127,27 +128,87 @@ def main():
                 f.write("gtkwave::/File/Write_Save_File_As "
                         f'"{os.path.abspath(gtkw_path)}"\n')
                 f.write("gtkwave::/File/Quit\n")
-            # xvfb-run exists only on headless Linux; macOS and any
-            # desktop session run gtkwave directly.
-            cmd = ((["xvfb-run", "-a"] if shutil.which("xvfb-run")
-                    else []) + ["gtkwave", os.path.join(rd, vcd),
-                                "-S", save_tcl])
-            try:
-                r = subprocess.run(
-                    cmd, capture_output=True, text=True, timeout=1200)
-            except subprocess.TimeoutExpired:
-                print(f"gtkw {stage}: gtkwave timed out (1200 s) loading "
-                      f"{vcd}; Tcl launcher retained")
-                continue
-            if not os.path.exists(gtkw_path):
-                print(f"gtkw {stage}: save failed ({r.returncode}); "
-                      f"Tcl launcher retained")
-            else:
-                print(f"gtkw {stage}: saved view written")
+            if not os.environ.get("GTKW_NO_TCL"):
+                # xvfb-run exists only on headless Linux; macOS and
+                # any desktop session run gtkwave directly.
+                cmd = ((["xvfb-run", "-a"] if shutil.which("xvfb-run")
+                        else []) + ["gtkwave", os.path.join(rd, vcd),
+                                    "-S", save_tcl])
+                try:
+                    r = subprocess.run(
+                        cmd, capture_output=True, text=True,
+                        timeout=1200)
+                    if os.path.exists(gtkw_path):
+                        saved = True
+                        print(f"gtkw {stage}: saved view written")
+                    else:
+                        tail = (r.stderr or "").strip().splitlines()
+                        print(f"gtkw {stage}: gtkwave save failed "
+                              f"({r.returncode})"
+                              + (f": {tail[-1]}" if tail else ""))
+                except subprocess.TimeoutExpired:
+                    print(f"gtkw {stage}: gtkwave timed out (1200 s) "
+                          f"loading {vcd}")
             os.remove(save_tcl)
-        else:
-            print(f"gtkw {stage}: Tcl launcher only (gtkwave not installed)")
+        if not saved:
+            # Tcl-less GTKWave builds (e.g. Homebrew macOS 3.4.0:
+            # "Tcl support not compiled into gtkwave") cannot run
+            # the save script at all, and .gtkw files carry no
+            # markers anyway (see above). The view definition is
+            # identical for every deterministic run of a stage,
+            # so template it from a sibling run's GTKWave-written
+            # .gtkw, rewriting only the file references.
+            if template_view(rd, stage, vcd, gtkw_path):
+                print(f"gtkw {stage}: view templated from a "
+                      f"sibling run (Tcl-less GTKWave)")
+            else:
+                print(f"gtkw {stage}: Tcl launcher only "
+                      f"(no saved view available)")
     return 0
+
+
+def template_view(rd, stage, vcd, gtkw_path):
+    """Copy a sibling run's stageNN.gtkw, rewriting [dumpfile],
+    [dumpfile_mtime], [dumpfile_size] and [savefile] for this run.
+    Only used when the template's trace basename matches this
+    stage's, so the view content (signals, groups, zoom) is the
+    one GTKWave itself produced for an identical deterministic
+    run. Returns True on success."""
+    import glob
+    import time
+    runs_dir = os.path.dirname(os.path.abspath(rd))
+    vcd_abs = os.path.join(rd, vcd)
+    for cand in sorted(glob.glob(os.path.join(
+            runs_dir, "*", f"stage{stage}.gtkw"))):
+        if os.path.abspath(cand) == os.path.abspath(gtkw_path):
+            continue
+        try:
+            lines = open(cand).read().splitlines()
+        except OSError:
+            continue
+        dump = next((ln for ln in lines
+                     if ln.startswith("[dumpfile]")), "")
+        if os.path.basename(vcd) not in dump:
+            continue
+        st = os.stat(vcd_abs)
+        out = []
+        for ln in lines:
+            if ln.startswith("[dumpfile]"):
+                out.append(f'[dumpfile] "{vcd_abs}"')
+            elif ln.startswith("[dumpfile_mtime]"):
+                out.append(f'[dumpfile_mtime] '
+                           f'"{time.ctime(st.st_mtime)}"')
+            elif ln.startswith("[dumpfile_size]"):
+                out.append(f"[dumpfile_size] {st.st_size}")
+            elif ln.startswith("[savefile]"):
+                out.append(f'[savefile] '
+                           f'"{os.path.abspath(gtkw_path)}"')
+            else:
+                out.append(ln)
+        with open(gtkw_path, "w") as f:
+            f.write("\n".join(out) + "\n")
+        return True
+    return False
 
 
 if __name__ == "__main__":
