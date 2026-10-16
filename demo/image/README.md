@@ -149,3 +149,34 @@ total about 1 hour 50 minutes of compute.
   bit-reproducible from `demo.sh reproduce` (the simulations are
   deterministic: identical cycle counts across independent runs).
   The stage 03-07 slice traces are committed.
+
+## Video
+
+Rendered after the owner's review (completed 2026-10-15) from the
+two reviewed runs, and only from those runs:
+
+- baseline: `runs/baseline-20261013-222600`
+- fault: `runs/fault-20261013-222600-r4`
+
+Render command:
+
+```bash
+./demo/image/demo.sh render-video --baseline baseline-20261013-222600 --fault fault-20261013-222600-r4
+```
+
+This runs `tools/render_video.py`, which composes every frame from
+the run artifacts (writes.csv, stage VCD slices, stage assets,
+results.json, tb_result.json, anchors.json) and encodes with
+ffmpeg. Outputs land in `demo/image/video/`:
+
+- `Muse_MCU_Visual_Demo.mp4`: 1080x1350 portrait, H.264, 30 fps,
+  55 s, silent, with burned-in captions. It is labeled throughout
+  as a replay of recorded RTL simulation; waveform scenes carry
+  simulation cycle references and note where time is compressed
+  or cycles are omitted.
+- `captions.srt`: the same caption text and timecodes as the
+  burned-in captions.
+- `cover.png`: 1080x1350 cover image (title, input image, edge
+  output).
+- `qa/`: one extracted frame per storyboard segment, used to
+  check readability and layout after rendering.

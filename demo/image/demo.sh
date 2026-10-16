@@ -151,10 +151,19 @@ cmd_walk() {
   done
 }
 
-cmd_render() {
-  say "render-video is gated on the owner's review (spec Section 8)."
-  say "After review confirmation, this command renders from the reviewed runs."
-  return 3
+cmd_render() { # --baseline ID --fault ID
+  local B="" F=""
+  while [ $# -gt 0 ]; do case "$1" in
+    --baseline) B="$2"; shift 2;;
+    --fault) F="$2"; shift 2;;
+    *) shift;;
+  esac; done
+  [ -n "$B" ] && [ -n "$F" ] || { say "usage: demo.sh render-video --baseline ID --fault ID"; return 2; }
+  [ -d "$(run_dir "$B")" ] || { say "no such run: $B"; return 2; }
+  [ -d "$(run_dir "$F")" ] || { say "no such run: $F"; return 2; }
+  say "rendering video from reviewed runs: $B + $F"
+  "$PY" "$HERE/tools/render_video.py" --baseline-dir "$(run_dir "$B")" \
+    --fault-dir "$(run_dir "$F")" --out-dir "$HERE/video"
 }
 
 case "${1:-}" in
@@ -164,6 +173,6 @@ case "${1:-}" in
   negative-control) shift; while [ $# -gt 0 ]; do case "$1" in --run) cmd_negative "$2"; exit $?;; esac; shift; done;;
   show) shift; R=""; S=""; while [ $# -gt 0 ]; do case "$1" in --run) R="$2"; shift 2;; --stage) S="$2"; shift 2;; *) shift;; esac; done; cmd_show "$R" "$S";;
   walk) shift; while [ $# -gt 0 ]; do case "$1" in --run) cmd_walk "$2"; exit 0;; esac; shift; done;;
-  render-video) cmd_render;;
+  render-video) shift; cmd_render "$@"; exit $?;;
   *) echo "usage: demo.sh setup|reproduce|walk --run ID|show --run ID --stage NN|verify --run ID|negative-control --run ID|render-video --baseline ID --fault ID" >&2; exit 2;;
 esac

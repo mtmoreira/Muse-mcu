@@ -1,0 +1,48 @@
+1
+00:00:00,000 --> 00:00:03,000
+A 64 by 64 grayscale image, processed by a microcontroller running in RTL simulation.
+
+2
+00:00:03,000 --> 00:00:09,000
+The image is read from SPI flash into SRAM. Every byte is checked against the source image.
+
+3
+00:00:09,000 --> 00:00:14,000
+Two gradient tasks compute the Sobel Gx and Gy for each stripe of four rows.
+
+4
+00:00:14,000 --> 00:00:19,000
+Combine waits on queues for both gradient stripes. No stripe is combined early.
+
+5
+00:00:19,000 --> 00:00:23,500
+Combine writes the edge image into the output framebuffer, one stripe at a time.
+
+6
+00:00:23,500 --> 00:00:26,000
+The finished frame is read back over UART with a SHA-256 digest.
+
+7
+00:00:26,000 --> 00:00:31,000
+Baseline result: the stored image matches the OpenCV reference. Zero mismatches.
+
+8
+00:00:31,000 --> 00:00:36,000
+Fault run: same firmware, same input. The testbench will flip one bit in SRAM.
+
+9
+00:00:36,000 --> 00:00:41,000
+Fault run: the computation and task schedule replay identically.
+
+10
+00:00:41,000 --> 00:00:47,000
+At the final write of pixel (32, 32), one bit is flipped: 0x00 becomes 0x80.
+
+11
+00:00:47,000 --> 00:00:52,000
+The corrupted byte is exported over UART. The reference comparison finds exactly one wrong pixel.
+
+12
+00:00:52,000 --> 00:00:55,000
+The checker rejects the faulty image. Define behavior and verify the evidence.
+
