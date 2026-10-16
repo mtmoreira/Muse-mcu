@@ -322,17 +322,26 @@ def main():
                              "gx_obs": obs_gx, "gy_obs": obs_gy,
                              "out_ref": ref_out[idx], "out_obs": obs_out,
                              "gx_write_cycle": gx_w[-1] if gx_w else None,
+                             "gy_write_cycle": gy_w[-1] if gy_w else None,
                              "out_write_cycle": out_w[-1] if out_w else None}
+    # Stage04 shares the stage06 writeback slice. Window on the Gy
+    # write, which is inside that slice; the Gx write precedes the
+    # slice start, so anchor on Gy (an earlier formula anchored on
+    # Gx and produced a negative window end).
     w06_start = evmap.get(0x4007, 0)
+    gy_rel = (gy_w[-1] - w06_start) if gy_w else 0
     S["04"] = {"image": "assets/stage04_pixel.png",
                "vcd": "stage06_writeback.vcd",
-               "t0_ns": max(0, (gx_w[-1] - w06_start - 400)) * CYCLE_NS
-               if gx_w else 0,
-               "t1_ns": ((gx_w[-1] - w06_start + 400)) * CYCLE_NS if gx_w else 0,
+               "t0_ns": max(0, gy_rel - 400) * CYCLE_NS,
+               "t1_ns": (gy_rel + 800) * CYCLE_NS,
                "events": [{"name": "Gx write for (32,32)",
-                           "cycle": gx_w[-1] if gx_w else None},
+                           "cycle": gx_w[-1] if gx_w else None,
+                           "in_waveform": bool(gx_w)
+                           and gx_w[-1] >= w06_start},
                           {"name": "Gy write for (32,32)",
-                           "cycle": gy_w[-1] if gy_w else None}]}
+                           "cycle": gy_w[-1] if gy_w else None,
+                           "in_waveform": bool(gy_w)
+                           and gy_w[-1] >= w06_start}]}
 
     # ---------- 05 RTOS ----------
     ranges = nm_ranges(args.elf, args.tc_nm)

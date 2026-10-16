@@ -6,5 +6,6 @@ gtkwave::addCommentTracesFromList {UART + trace}
 gtkwave::addSignalsFromList {tb_image.dut.uart_tx tb_image.dut.gpio0.scratch_q}
 gtkwave::addCommentTracesFromList {Core}
 gtkwave::addSignalsFromList {tb_image.dut.dbg_pc tb_image.dut.dbg_trap_taken tb_image.dut.dbg_mcause}
+gtkwave::setZoomRangeTimes 153680 177680
 gtkwave::setMarker 161680
 gtkwave::setNamedMarker 161680 "Gy write for (32,32)"

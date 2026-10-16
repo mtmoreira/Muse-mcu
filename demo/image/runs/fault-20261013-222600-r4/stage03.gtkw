@@ -1,9 +1,9 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Fri Oct 16 02:26:23 2026
+[*] Fri Oct 16 04:41:22 2026
 [*]
 [dumpfile] "/home/hatch/workspace/Muse-mcu/demo/image/runs/fault-20261013-222600-r4/stage03_load_detail.vcd"
-[dumpfile_mtime] "Thu Oct 15 23:51:18 2026"
+[dumpfile_mtime] "Fri Oct 16 04:40:39 2026"
 [dumpfile_size] 1581011
 [savefile] "/home/hatch/workspace/Muse-mcu/demo/image/runs/fault-20261013-222600-r4/stage03.gtkw"
 [timestart] 0
