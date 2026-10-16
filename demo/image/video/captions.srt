@@ -4,45 +4,57 @@ A 64 by 64 grayscale image, processed by a microcontroller running in RTL simula
 
 2
 00:00:03,000 --> 00:00:09,000
-The image is read from SPI flash into SRAM. Every byte is checked against the source image.
+The circuit: RV32I core, 128 KiB SRAM, SPI master, UART, trace register.
 
 3
-00:00:09,000 --> 00:00:14,000
-Two gradient tasks compute the Sobel Gx and Gy for each stripe of four rows.
+00:00:09,000 --> 00:00:15,000
+The stack: FreeRTOS tasks and queues. Firmware computes the SHA-256.
 
 4
-00:00:14,000 --> 00:00:19,000
-Combine waits on queues for both gradient stripes. No stripe is combined early.
+00:00:15,000 --> 00:00:21,000
+The image is read from SPI flash into SRAM. Every byte is checked against the source image.
 
 5
-00:00:19,000 --> 00:00:23,500
-Combine writes the edge image into the output framebuffer, one stripe at a time.
+00:00:21,000 --> 00:00:26,000
+Two gradient tasks compute the Sobel Gx and Gy for each stripe of four rows.
 
 6
-00:00:23,500 --> 00:00:26,000
-The finished frame is read back over UART with a SHA-256 digest.
+00:00:26,000 --> 00:00:31,000
+Combine waits on queues for both gradient stripes. No stripe is combined early.
 
 7
-00:00:26,000 --> 00:00:31,000
-Baseline result: the stored image matches the OpenCV reference. Zero mismatches.
+00:00:31,000 --> 00:00:35,500
+Combine writes the edge image into the output framebuffer, one stripe at a time.
 
 8
-00:00:31,000 --> 00:00:36,000
-Fault run: same firmware, same input. The testbench will flip one bit in SRAM.
+00:00:35,500 --> 00:00:38,000
+The finished frame is read back over UART with a SHA-256 digest.
 
 9
-00:00:36,000 --> 00:00:41,000
-Fault run: the computation and task schedule replay identically.
+00:00:38,000 --> 00:00:43,000
+Baseline result: the stored image matches the OpenCV reference. Zero mismatches.
 
 10
-00:00:41,000 --> 00:00:47,000
-At the final write of pixel (32, 32), one bit is flipped: 0x00 becomes 0x80.
+00:00:43,000 --> 00:00:48,000
+Fault run: same firmware, same input. The testbench will flip one bit in SRAM.
 
 11
-00:00:47,000 --> 00:00:52,000
-The corrupted byte is exported over UART. The reference comparison finds exactly one wrong pixel.
+00:00:48,000 --> 00:00:53,000
+Fault run: the computation and task schedule replay identically.
 
 12
-00:00:52,000 --> 00:00:55,000
+00:00:53,000 --> 00:00:59,000
+At the final write of pixel (32, 32), one bit is flipped: 0x00 becomes 0x80.
+
+13
+00:00:59,000 --> 00:01:04,000
+The corrupted byte is exported over UART. The reference comparison finds exactly one wrong pixel.
+
+14
+00:01:04,000 --> 00:01:14,000
+Method: contract first, independent implementations, byte-exact comparison of raw evidence.
+
+15
+00:01:14,000 --> 00:01:17,000
 The checker rejects the faulty image. Define behavior and verify the evidence.
 

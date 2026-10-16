@@ -2,7 +2,7 @@
 """Render the Muse MCU visual demo video from two recorded runs.
 
 Produces, in --out-dir:
-  Muse_MCU_Visual_Demo.mp4  1080x1350, H.264, 30 fps, about 55 s
+  Muse_MCU_Visual_Demo.mp4  1080x1350, H.264, 30 fps, 77 s
   captions.srt               same captions that are burned into frames
   cover.png                  1080x1350 cover image
 
@@ -333,27 +333,33 @@ def waveform_panels(run_base, run_fault, tmpdir):
 CAPTIONS = [
     (0.0, 3.0, "A 64 by 64 grayscale image, processed by a "
                "microcontroller running in RTL simulation."),
-    (3.0, 9.0, "The image is read from SPI flash into SRAM. Every "
-               "byte is checked against the source image."),
-    (9.0, 14.0, "Two gradient tasks compute the Sobel Gx and Gy for "
-                "each stripe of four rows."),
-    (14.0, 19.0, "Combine waits on queues for both gradient stripes. "
-                 "No stripe is combined early."),
-    (19.0, 23.5, "Combine writes the edge image into the output "
+    (3.0, 9.0, "The circuit: RV32I core, 128 KiB SRAM, SPI master, "
+               "UART, trace register."),
+    (9.0, 15.0, "The stack: FreeRTOS tasks and queues. Firmware "
+                "computes the SHA-256."),
+    (15.0, 21.0, "The image is read from SPI flash into SRAM. Every "
+                 "byte is checked against the source image."),
+    (21.0, 26.0, "Two gradient tasks compute the Sobel Gx and Gy for "
+                 "each stripe of four rows."),
+    (26.0, 31.0, "Combine waits on queues for both gradient stripes. "
+                  "No stripe is combined early."),
+    (31.0, 35.5, "Combine writes the edge image into the output "
                  "framebuffer, one stripe at a time."),
-    (23.5, 26.0, "The finished frame is read back over UART with a "
+    (35.5, 38.0, "The finished frame is read back over UART with a "
                  "SHA-256 digest."),
-    (26.0, 31.0, "Baseline result: the stored image matches the "
+    (38.0, 43.0, "Baseline result: the stored image matches the "
                  "OpenCV reference. Zero mismatches."),
-    (31.0, 36.0, "Fault run: same firmware, same input. The testbench "
+    (43.0, 48.0, "Fault run: same firmware, same input. The testbench "
                  "will flip one bit in SRAM."),
-    (36.0, 41.0, "Fault run: the computation and task schedule "
+    (48.0, 53.0, "Fault run: the computation and task schedule "
                  "replay identically."),
-    (41.0, 47.0, "At the final write of pixel (32, 32), one bit is "
+    (53.0, 59.0, "At the final write of pixel (32, 32), one bit is "
                  "flipped: 0x00 becomes 0x80."),
-    (47.0, 52.0, "The corrupted byte is exported over UART. The "
+    (59.0, 64.0, "The corrupted byte is exported over UART. The "
                  "reference comparison finds exactly one wrong pixel."),
-    (52.0, 55.0, "The checker rejects the faulty image. Define "
+    (64.0, 74.0, "Method: contract first, independent implementations, "
+                 "byte-exact comparison of raw evidence."),
+    (74.0, 77.0, "The checker rejects the faulty image. Define "
                  "behavior and verify the evidence."),
 ]
 
@@ -414,7 +420,7 @@ def anim_frames(run, seq, tag, tag_color, title, cap, label,
 def scene_load(base):
     frames = anim_frames(
         base, base.in_anim, "BASELINE", GREEN,
-        "Loading the image: SPI flash to SRAM", cap_at(3),
+        "Loading the image: SPI flash to SRAM", cap_at(15),
         "INPUT SRAM BUFFER, RECONSTRUCTED FROM COMMITTED WRITES",
         180)
     # add the decoded SPI strip panel to the last frames' lower area
@@ -431,7 +437,7 @@ def scene_load(base):
 def scene_algorithm(base):
     img, d = base_frame("BASELINE", GREEN,
                         "Sobel gradients, one stripe at a time",
-                        cap_at(9))
+                        cap_at(21))
     card = fit_asset(base.asset("stage04_pixel.png"), 1000, 560,
                      trim=True)
     img.paste(card, (40, 160))
@@ -459,7 +465,7 @@ def scene_algorithm(base):
 
 def scene_rtos(base):
     img, d = base_frame("BASELINE", GREEN,
-                        "Real task interleaving", cap_at(14))
+                        "Real task interleaving", cap_at(26))
     card = fit_asset(base.asset("stage05_rtos.png"), 1000, 330)
     img.paste(card, (40, 160))
     y = 160 + card.height + 26
@@ -481,7 +487,7 @@ def scene_rtos(base):
 
 def scene_uart(base, uart_panel):
     img, d = base_frame("BASELINE", GREEN,
-                        "Readback over UART", cap_at(23.5))
+                        "Readback over UART", cap_at(35.5))
     card = fit_asset(uart_panel, 1000, 300)
     img.paste(card, (40, 170))
     y = 170 + card.height + 30
@@ -503,7 +509,7 @@ def scene_uart(base, uart_panel):
 
 def scene_baseline_result(base):
     img, d = base_frame("BASELINE", GREEN,
-                        "Baseline result: exact match", cap_at(26))
+                        "Baseline result: exact match", cap_at(38))
     card = fit_asset(base.asset("stage08_compare.png"), 1000, 350)
     img.paste(card, (40, 160))
     y = 160 + card.height + 24
@@ -528,7 +534,7 @@ def scene_baseline_result(base):
 def scene_fault_intro(fault):
     frames = anim_frames(
         fault, fault.in_anim, "FAULT RUN", RED,
-        "Fault run: same start, one flipped bit", cap_at(31),
+        "Fault run: same start, one flipped bit", cap_at(43),
         "INPUT SRAM BUFFER, FAULT RUN REPLAY", 150, canvas=560)
     for img in frames:
         d = ImageDraw.Draw(img)
@@ -547,7 +553,7 @@ def scene_fault_intro(fault):
 def scene_fault_rtos(fault):
     img, d = base_frame("FAULT RUN", RED,
                         "Fault run: computation replays identically",
-                        cap_at(36))
+                        cap_at(48))
     card = fit_asset(fault.asset("stage05_rtos.png"), 1000, 330)
     img.paste(card, (40, 196))
     y = 196 + card.height + 26
@@ -567,7 +573,7 @@ def scene_fault_rtos(fault):
 def scene_injection(fault, inj_panel):
     img, d = base_frame("FAULT RUN", RED,
                         "The injection: one bit, one write",
-                        cap_at(41))
+                        cap_at(53))
     card = fit_asset(inj_panel, 1000, 370)
     img.paste(card, (40, 160))
     y = 160 + card.height + 22
@@ -595,7 +601,7 @@ def scene_injection(fault, inj_panel):
 
 def scene_fault_result(fault):
     img, d = base_frame("FAULT RUN", RED,
-                        "One wrong pixel", cap_at(47))
+                        "One wrong pixel", cap_at(59))
     card = fit_asset(fault.asset("stage08_crop.png"), 470, 470)
     img.paste(card, (40, 170))
     x = 545
@@ -620,7 +626,7 @@ def scene_fault_result(fault):
 def scene_close(base, fault):
     img, d = base_frame("VERDICTS", ACCENT,
                         "Two runs, three separate verdicts",
-                        cap_at(52))
+                        cap_at(74))
     y = 190
     d.text((40, y), "BASELINE", font=F_H, fill=GREEN)
     d.text((330, y), "functional PASS, zero mismatches",
@@ -644,6 +650,127 @@ def scene_close(base, fault):
         d.text((40, y), ln, font=F_TITLE, fill=WHITE)
         y += 56
     return [img] * 90
+
+
+def scene_circuit():
+    img, d = base_frame("THE CIRCUIT", ACCENT,
+                        "The designed circuit", cap_at(3))
+    # core block
+    d.rounded_rectangle([240, 180, 840, 300], radius=14, fill=PANEL,
+                        outline=ACCENT, width=3)
+    tw = d.textlength("RV32I + Zicsr core", font=F_H)
+    d.text((540 - tw / 2, 202), "RV32I + Zicsr core", font=F_H,
+           fill=WHITE)
+    tw = d.textlength("single-cycle, 50 MHz", font=F_BODY)
+    d.text((540 - tw / 2, 250), "single-cycle, 50 MHz", font=F_BODY,
+           fill=GRAY)
+    # bus
+    d.line([540, 300, 540, 348], fill=GRAY, width=3)
+    d.line([70, 348, 1010, 348], fill=GRAY, width=3)
+    d.text((70, 314), "bus", font=F_SMALL, fill=GRAY)
+    blocks = [
+        ("SRAM", 40, 184, ["128 KiB", "0x00010000"]),
+        ("SPI0 master", 234, 260, ["mode 0", "to SPI flash",
+                                   "(testbench model)"]),
+        ("UART0", 504, 184, ["115200 baud", "divider 434"]),
+        ("GPIO", 698, 160, ["with trace", "register"]),
+        ("CLINT", 868, 172, ["timer and", "interrupts"]),
+    ]
+    for name, x, w, subs in blocks:
+        cx = x + w / 2
+        d.line([cx, 348, cx, 392], fill=GRAY, width=3)
+        d.rounded_rectangle([x, 392, x + w, 612], radius=12,
+                            fill=PANEL, outline=GRAY, width=2)
+        tw = d.textlength(name, font=F_BODY_B)
+        d.text((cx - tw / 2, 412), name, font=F_BODY_B, fill=WHITE)
+        yy = 462
+        for sline in subs:
+            tw = d.textlength(sline, font=F_SMALL)
+            d.text((cx - tw / 2, yy), sline, font=F_SMALL, fill=GRAY)
+            yy += 34
+    y = text_block(d, 40, 690,
+                   "All blocks are memory-mapped registers on the "
+                   "single 50 MHz clock domain.", maxw=990)
+    text_block(d, 40, y + 12,
+               "The SPI flash is a testbench model. Every other "
+               "block is the RTL under test.", maxw=990)
+    return [img] * 180
+
+
+def _band(d, y, h, label, outline=GRAY):
+    d.rounded_rectangle([40, y, 1040, y + h], radius=14, fill=PANEL,
+                        outline=outline, width=2)
+    d.text((60, y + 14), label, font=F_SMALL, fill=ACCENT)
+
+
+def _arrow(d, x0, y0, x1, y1):
+    d.line([x0, y0, x1, y1], fill=WHITE, width=4)
+    ang = np.arctan2(y1 - y0, x1 - x0)
+    for da in (2.6, -2.6):
+        d.line([x1, y1, x1 + 16 * np.cos(ang + da),
+                y1 + 16 * np.sin(ang + da)], fill=WHITE, width=4)
+
+
+def scene_stack():
+    img, d = base_frame("THE SOFTWARE", ACCENT,
+                        "The software stack", cap_at(9))
+    # APPLICATION band: task chips in the shared palette, queue arrows
+    _band(d, 180, 300, "APPLICATION", outline=ACCENT)
+    chip(d, 64, 300, 210, "ImageIO", "priority 1",
+         TASK_COLORS["ImageIO"])
+    chip(d, 440, 252, 240, "GradientX", "priority 2",
+         TASK_COLORS["GradientX"])
+    chip(d, 440, 352, 240, "GradientY", "priority 2",
+         TASK_COLORS["GradientY"])
+    chip(d, 806, 302, 210, "Combine", "priority 3",
+         TASK_COLORS["Combine"])
+    _arrow(d, 284, 330, 430, 291)
+    _arrow(d, 284, 350, 430, 391)
+    _arrow(d, 690, 291, 796, 330)
+    _arrow(d, 690, 391, 796, 350)
+    d.text((322, 428), "queues", font=F_SMALL, fill=GRAY)
+    d.text((706, 428), "queues", font=F_SMALL, fill=GRAY)
+    # KERNEL band
+    _band(d, 520, 120, "KERNEL")
+    d.text((60, 568), "FreeRTOS kernel", font=F_BODY_B, fill=WHITE)
+    tw = d.textlength("tasks, queues, scheduler", font=F_BODY)
+    d.text((1040 - 24 - tw, 568), "tasks, queues, scheduler",
+           font=F_BODY, fill=GRAY)
+    # DRIVERS band
+    _band(d, 680, 120, "DRIVERS")
+    d.text((60, 728), "uart.c, spi.c, gpio.c, timer.c, irq.c",
+           font=F_MONO_B, fill=WHITE)
+    # HARDWARE band
+    _band(d, 840, 120, "HARDWARE")
+    d.text((60, 888), "Muse MCU hardware", font=F_BODY_B, fill=WHITE)
+    tw = d.textlength("the circuit from the previous scene",
+                      font=F_BODY)
+    d.text((1040 - 24 - tw, 888), "the circuit from the previous "
+           "scene", font=F_BODY, fill=GRAY)
+    return [img] * 180
+
+
+def scene_methodology():
+    img, d = base_frame("METHODOLOGY", ACCENT,
+                        "How the evidence was produced", cap_at(64))
+    rows = [
+        "Contract first: 31 active requirements, each with its "
+        "own checker.",
+        "Built twice, independently: the firmware Sobel and an "
+        "OpenCV reference.",
+        "Compared on raw evidence only: pin decodes and SRAM "
+        "write monitors, byte for byte.",
+        "Negative control: the fault came from the testbench "
+        "alone; the checker was never told.",
+    ]
+    y = 190
+    for i, r in enumerate(rows, 1):
+        d.rounded_rectangle([40, y, 1040, y + 170], radius=14,
+                            fill=PANEL)
+        d.text((68, y + 50), str(i), font=F_TITLE_XL, fill=ACCENT)
+        text_block(d, 150, y + 36, r, font=F_BODY, maxw=850)
+        y += 200
+    return [img] * 300
 
 
 def make_cover(base, out_path):
@@ -701,12 +828,14 @@ def main():
 
     scenes = []
     scenes += scene_title(base, fault, uart_panel, inj_panel)
+    scenes += scene_circuit()
+    scenes += scene_stack()
     scenes += scene_load(base)
     scenes += scene_algorithm(base)
     scenes += scene_rtos(base)
     scenes += anim_frames(base, base.out_anim, "BASELINE", GREEN,
                           "Writing the edge image to SRAM",
-                          cap_at(19),
+                          cap_at(31),
                           "OUTPUT FRAMEBUFFER, COMMITTED WRITES",
                           135)
     scenes += scene_uart(base, uart_panel)
@@ -715,8 +844,9 @@ def main():
     scenes += scene_fault_rtos(fault)
     scenes += scene_injection(fault, inj_panel)
     scenes += scene_fault_result(fault)
+    scenes += scene_methodology()
     scenes += scene_close(base, fault)
-    assert len(scenes) == FPS * 55, f"frame count {len(scenes)}"
+    assert len(scenes) == FPS * 77, f"frame count {len(scenes)}"
 
     out_mp4 = os.path.join(args.out_dir, "Muse_MCU_Visual_Demo.mp4")
     cmd = ["ffmpeg", "-y", "-f", "image2pipe", "-framerate",

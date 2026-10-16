@@ -170,7 +170,13 @@ results.json, tb_result.json, anchors.json) and encodes with
 ffmpeg. Outputs land in `demo/image/video/`:
 
 - `Muse_MCU_Visual_Demo.mp4`: 1080x1350 portrait, H.264, 30 fps,
-  55 s, silent, with burned-in captions.
+  77 s, silent, with burned-in captions. After the hook it adds
+  three scenes to the original storyboard: the designed circuit
+  (core, SRAM, SPI0, UART0, GPIO, CLINT on one bus), the software
+  stack (application tasks, FreeRTOS kernel, drivers, hardware),
+  and, before the closing verdicts, the methodology (contract
+  first, independent implementations, byte-exact comparison of
+  raw evidence, negative control).
 - `Muse_MCU_Visual_Demo_VO.mp4`: the narrated edition, same
   frames plus a voice-over (ElevenLabs voice "Will") synthesized
   per storyboard segment and fitted to each window.
