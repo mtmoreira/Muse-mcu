@@ -1,0 +1,10 @@
+S1|A microcontroller, running in RTL simulation.
+S2|It loads a 64 by 64 image from SPI flash into SRAM.
+S3|Two worker tasks compute the Sobel gradients. Combine, the third task, waits on queues for both gradients of each stripe before writing any output byte.
+S4|The result fills the output framebuffer, then leaves over UART in one packet with a SHA 256 digest.
+S5|It matches the independent reference exactly. Zero mismatches, everywhere.
+S6|Same input, same firmware, second run. This time the testbench injects a fault.
+S7|The computation runs identically, and every gradient still matches the reference.
+S8|At the final write of pixel 32, 32, bit 7 is flipped. Zero becomes 128.
+S9|The bad byte leaves over UART, and the comparison flags exactly one pixel.
+S10|Rejected. Define behavior. Verify the evidence.
