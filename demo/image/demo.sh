@@ -31,6 +31,13 @@ cmd_setup() {
     python3 -m venv "$VENV"
     "$VENV/bin/pip" install --quiet "opencv-python-headless==4.11.0.86" \
       "pillow==11.3.0" "matplotlib==3.10.6"
+    # Fail loudly if the install did not land (a quiet pip failure
+    # once let setup continue and die later on the import).
+    "$PY" -c "import cv2" 2>/dev/null || {
+      say "ERROR: pip install finished but cv2 is not importable in $VENV"
+      say "run again; if it persists, run without --quiet to see pip's error"
+      return 1
+    }
   fi
   {
     echo "setup record $(date -u +%Y-%m-%dT%H:%M:%SZ)"
