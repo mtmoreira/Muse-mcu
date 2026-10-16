@@ -67,6 +67,7 @@ freeze_record() {
 run_one() { # kind runid fault
   local kind="$1" rid="$2" fault="$3"
   local rd="$HERE/runs/$rid"
+  local ce
   mkdir -p "$rd"
   bash tb/run_image.sh --flash "$HERE/inputs/${kind}_flash.hex" \
        --outdir "$rd" --fault "$fault" || return 2
@@ -80,7 +81,7 @@ EOF
     --input-raw "$HERE/inputs/$kind.raw" --ref-dir "$HERE/refs/$kind" \
     --flash-bin "$HERE/inputs/${kind}_flash.bin" \
     > "$rd/checker_console.log" 2>&1
-  local ce; ce=$?
+  ce=$?
   echo "$ce" > "$rd/checker_exit.txt"
   echo "checker exit=$ce (run $rid)"
   return "$ce"
