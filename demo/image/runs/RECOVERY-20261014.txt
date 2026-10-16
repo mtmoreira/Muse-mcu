@@ -33,3 +33,23 @@ tb_image.sv was fixed (testbench only; firmware untouched) and the
 fault run was repeated as fault-20261013-222600-r4. Independently,
 make_gtkw.py died on a 120 s gtkwave timeout for the 123 MB stage02
 trace; timeout raised to 1200 s with per-stage failure isolation.
+
+Addendum (2026-10-15, final resolution of the GTKWave item): the
+timeout was a symptom, not the cause. On GTKWave 3.3.116 the Tcl
+commands gtkwave::saveFile and gtkwave::exit do not exist and
+gtkwave::setMarker takes one argument; any error aborted the save
+script before it could write or quit, so GTKWave sat in its event
+loop until killed. The working API (verified headless against this
+build) is gtkwave::setNamedMarker (2 args), gtkwave::/File/
+Write_Save_File_As and gtkwave::/File/Quit; make_gtkw.py now uses
+those, and all 12 stage views (6 stages x baseline and fault-r4)
+generate in seconds and open cleanly. Two residual truths: (a)
+this GTKWave build does not persist Tcl-set named markers into
+.gtkw save files (the save file's marker slots stay unset), so
+markers are applied by the companion .tcl launchers at open
+time; (b) stage03 marker times needed the slice's true base
+cycle (cs35_start_cycle - 25), now taken from tb_result.json.
+GTKWave itself had to be installed on the replacement VM (apt,
+3.3.116) before any of this could run. Final state:
+runs/index.html reads APP1-APP5, NEG1, NEG2, GEN1, VIEW1,
+REPRO1, REVIEW1 all MET, committed as d696212.
