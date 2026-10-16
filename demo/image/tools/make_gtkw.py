@@ -11,6 +11,7 @@ Tcl launcher is shipped (spec allows tested Tcl launchers).
 import argparse
 import json
 import os
+import shutil
 import subprocess
 
 SIGNALS = {
@@ -126,11 +127,14 @@ def main():
                 f.write("gtkwave::/File/Write_Save_File_As "
                         f'"{os.path.abspath(gtkw_path)}"\n')
                 f.write("gtkwave::/File/Quit\n")
+            # xvfb-run exists only on headless Linux; macOS and any
+            # desktop session run gtkwave directly.
+            cmd = ((["xvfb-run", "-a"] if shutil.which("xvfb-run")
+                    else []) + ["gtkwave", os.path.join(rd, vcd),
+                                "-S", save_tcl])
             try:
                 r = subprocess.run(
-                    ["xvfb-run", "-a", "gtkwave",
-                     os.path.join(rd, vcd), "-S", save_tcl],
-                    capture_output=True, text=True, timeout=1200)
+                    cmd, capture_output=True, text=True, timeout=1200)
             except subprocess.TimeoutExpired:
                 print(f"gtkw {stage}: gtkwave timed out (1200 s) loading "
                       f"{vcd}; Tcl launcher retained")
