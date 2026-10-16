@@ -170,7 +170,11 @@ results.json, tb_result.json, anchors.json) and encodes with
 ffmpeg. Outputs land in `demo/image/video/`:
 
 - `Muse_MCU_Visual_Demo.mp4`: 1080x1350 portrait, H.264, 30 fps,
-  55 s, silent, with burned-in captions. It is labeled throughout
+  55 s, silent, with burned-in captions.
+- `Muse_MCU_Visual_Demo_VO.mp4`: the narrated edition, same
+  frames plus a voice-over (ElevenLabs voice "Will") synthesized
+  per storyboard segment and fitted to each window.
+  Script: `narration.txt`. It is labeled throughout
   as a replay of recorded RTL simulation; waveform scenes carry
   simulation cycle references and note where time is compressed
   or cycles are omitted.
