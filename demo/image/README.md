@@ -30,6 +30,21 @@ second, distinct input AFTER the freeze and runs it through the same
 binary (GEN1). Each run lands in its own `runs/<id>/` directory and
 nothing overwrites a previous review's evidence.
 
+`reproduce` enforces the functional outcomes before it builds any
+walkthrough assets. `run_one` records each run's checker exit code
+in `checker_exit.txt`, and the reproduce flow gates on it: a
+baseline or extra run whose functional checker fails stops
+reproduce with a nonzero exit. The fault run must satisfy the
+opposite requirement plus confirmation: the checker must have
+rejected it, and the negative-control wrapper must confirm the
+detection (packet integrity MATCH, image reference MISMATCH,
+detection CONFIRMED); a fault run the checker passes, or one the
+negative control cannot confirm, also stops reproduce. The
+remaining acceptance items in the table below are computed from
+the recorded run artifacts by `make_index.py` at the end of a
+successful reproduce; the runner does not gate on them
+individually.
+
 `walk`/`show` use captured evidence only; they do not rerun the
 simulation. `verify` reruns the unchanged functional checker.
 `negative-control` is the experiment wrapper: it succeeds only when

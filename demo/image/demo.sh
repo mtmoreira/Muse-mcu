@@ -69,7 +69,7 @@ run_one() { # kind runid fault
   local rd="$HERE/runs/$rid"
   mkdir -p "$rd"
   bash tb/run_image.sh --flash "$HERE/inputs/${kind}_flash.hex" \
-       --outdir "$rd" --fault "$fault" || return 1
+       --outdir "$rd" --fault "$fault" || return 2
   cat > "$rd/meta.json" <<EOF
 {"kind": "$kind", "run_id": "$rid", "fault": $fault,
  "input_raw": "$HERE/inputs/$kind.raw", "input_json": "$HERE/inputs/$kind.json",
@@ -80,11 +80,49 @@ EOF
     --input-raw "$HERE/inputs/$kind.raw" --ref-dir "$HERE/refs/$kind" \
     --flash-bin "$HERE/inputs/${kind}_flash.bin" \
     > "$rd/checker_console.log" 2>&1
-  echo "checker exit=$? (run $rid)"
+  local ce; ce=$?
+  echo "$ce" > "$rd/checker_exit.txt"
+  echo "checker exit=$ce (run $rid)"
+  return "$ce"
+}
+
+# Gate a finished run against its required functional outcome.
+# pass:   the functional checker must have PASSED (exit 0 recorded
+#         in checker_exit.txt by run_one).
+# reject: the functional checker must have REJECTED the run
+#         (exit 1) AND the negative-control wrapper must confirm
+#         the detection (its own exit 0; it checks the injection
+#         record, the single (32,32) mismatch, packet integrity).
+# Returns nonzero when the requirement is not met, which stops
+# cmd_reproduce.
+gate_run() { # run-id pass|reject
+  local rid="$1" want="$2" rd; rd=$(run_dir "$rid")
+  local ce; ce=$(cat "$rd/checker_exit.txt" 2>/dev/null || echo missing)
+  if [ "$want" = "pass" ]; then
+    if [ "$ce" = "0" ]; then
+      say "gate: $rid functional checker PASS (required)"
+      return 0
+    fi
+    say "gate: $rid functional checker exit=$ce, expected 0 (PASS). REPRODUCE STOPS."
+    return 1
+  fi
+  if [ "$ce" != "1" ]; then
+    say "gate: $rid functional checker exit=$ce, expected 1 (the faulty application must be rejected). REPRODUCE STOPS."
+    return 1
+  fi
+  local nc
+  if ! nc=$("$PY" "$HERE/tools/negative_control.py" --run-dir "$rd" 2>&1); then
+    echo "$nc"
+    say "gate: $rid negative control did not confirm the detection. REPRODUCE STOPS."
+    return 1
+  fi
+  echo "$nc"
+  say "gate: $rid faulty application rejected, negative control CONFIRMED (required)"
+  return 0
 }
 
 cmd_reproduce() {
-  local ts; ts=$(date +%Y%m%d-%H%M%S)
+  local ts rc; ts=$(date +%Y%m%d-%H%M%S)
   say "building firmware (frozen for all runs below)"
   make -C fw APP=image_demo > /dev/null || { say "firmware build FAILED"; return 1; }
   freeze_record "$HERE/runs/FREEZE-$ts.txt"
@@ -95,16 +133,22 @@ cmd_reproduce() {
   "$PY" "$HERE/tools/ref_sobel.py" compute --raw "$HERE/inputs/main.raw" \
     --outdir "$HERE/refs/main" > /dev/null
   say "baseline run"
-  run_one main "baseline-$ts" 0 || { say "baseline run FAILED at tb level"; return 1; }
+  run_one main "baseline-$ts" 0; rc=$?
+  [ $rc -eq 2 ] && { say "baseline run FAILED at tb level"; return 1; }
+  gate_run "baseline-$ts" pass || return 1
   say "fault run"
-  run_one main "fault-$ts" 1 || { say "fault run FAILED at tb level"; return 1; }
+  run_one main "fault-$ts" 1; rc=$?
+  [ $rc -eq 2 ] && { say "fault run FAILED at tb level"; return 1; }
+  gate_run "fault-$ts" reject || return 1
   say "post-freeze additional input (GEN1): generating extra image AFTER the freeze"
   "$PY" "$HERE/tools/gen_input_image.py" --kind extra --outdir "$HERE/inputs" > /dev/null
   "$PY" "$HERE/tools/build_flash.py" --raw "$HERE/inputs/extra.raw" --frame 2 \
     --out-prefix "$HERE/inputs/extra_flash" > /dev/null
   "$PY" "$HERE/tools/ref_sobel.py" compute --raw "$HERE/inputs/extra.raw" \
     --outdir "$HERE/refs/extra" > /dev/null
-  run_one extra "extra-$ts" 0 || { say "extra run FAILED at tb level"; return 1; }
+  run_one extra "extra-$ts" 0; rc=$?
+  [ $rc -eq 2 ] && { say "extra run FAILED at tb level"; return 1; }
+  gate_run "extra-$ts" pass || return 1
   say "building walkthrough assets"
   for rid in "baseline-$ts" "fault-$ts"; do
     "$PY" "$HERE/tools/make_assets.py" --run-dir "$HERE/runs/$rid" \
