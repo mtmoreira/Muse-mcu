@@ -194,9 +194,11 @@ else
         IVL_LOG="$DL_DIR/iverilog-build.log"
         IVL_TGZ="$DL_DIR/iverilog-v12_0.tar.gz"
         IVL_URL="https://github.com/steveicarus/iverilog/archive/refs/tags/v12_0.tar.gz"
-        # Use the release tarball (pre-generated configure) instead of
-        # git+autoconf.sh: avoids running autoconf.sh which triggers
-        # macOS XProtect "Malicious Script Blocked" on some systems.
+        # The GitHub tag archive ships configure.ac + autoconf.sh only;
+        # the generated ./configure is NOT in it (an earlier comment here
+        # claimed otherwise and the build died on the missing file). Run
+        # autoconf.sh when configure is absent; autoconf is installed
+        # with the build deps above.
         if [ ! -d "$IVL_SRC" ]; then
           log "downloading iverilog v12_0 release tarball"
           curl -sSL -o "$IVL_TGZ" "$IVL_URL" || fail "iverilog download failed"
@@ -214,7 +216,9 @@ else
             && mv "$IVL_SRC/driver/main.c.fixed" "$IVL_SRC/driver/main.c" \
             || fail "iverilog macOS patch failed"
         fi
-        ( cd "$IVL_SRC" && ./configure --prefix="$IVL_PRE" >"$IVL_LOG" 2>&1 \
+        ( cd "$IVL_SRC" \
+          && { [ -x ./configure ] || sh autoconf.sh >"$IVL_LOG" 2>&1; } \
+          && ./configure --prefix="$IVL_PRE" >>"$IVL_LOG" 2>&1 \
           && make -j"$NCPU" >>"$IVL_LOG" 2>&1 && make install >>"$IVL_LOG" 2>&1 ) \
           || { fail "iverilog source build failed (log: $IVL_LOG)"; tail -20 "$IVL_LOG" >&2; }
         export PATH="$IVL_PRE/bin:$PATH"
