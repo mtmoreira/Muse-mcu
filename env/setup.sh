@@ -290,8 +290,14 @@ spike_ok() {
   # binary, but its debug module sits at [0x0,0x1000) and every A1/A2
   # golden run dies with "devices at [0, 1000) and [0, 40000) overlap".
   # Require the spike-mcu platform patch in the installed header
-  # (tb/arch/README.md). A user-set SPIKE_BIN is trusted as-is.
-  if [ -n "${SPIKE_BIN:-}" ]; then [ -x "$SPIKE_BIN" ]; return; fi
+  # (tb/arch/README.md).
+  # SPIKE_BIN counts as a deliberate override only when it points
+  # OUTSIDE the managed prefix: the activate.sh generated below exports
+  # SPIKE_BIN set to the managed default, so a shell that sourced it
+  # must not make an unpatched managed install look like an override.
+  if [ -n "${SPIKE_BIN:-}" ] && [ "$(dirname "$SPIKE_BIN")" != "$SPIKE_PRE/bin" ]; then
+    [ -x "$SPIKE_BIN" ]; return
+  fi
   [ -x "$SPIKE_BIN_DEFAULT" ] || return 1
   grep -q "define DEBUG_START        0x40000000" "$SPIKE_PRE/include/riscv/platform.h" 2>/dev/null \
     && grep -q "define DEFAULT_RSTVEC     0x40001000" "$SPIKE_PRE/include/riscv/platform.h" 2>/dev/null
