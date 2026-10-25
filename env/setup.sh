@@ -285,11 +285,21 @@ fi
 # ---------------------------------------------------------------- spike (pinned commit)
 SPIKE_PRE="$TOOLCHAIN_ROOT/spike-mcu"
 SPIKE_BIN_DEFAULT="$SPIKE_PRE/bin/spike"
-spike_ok() { [ -x "${SPIKE_BIN:-$SPIKE_BIN_DEFAULT}" ]; }
+spike_ok() {
+  # Existence is not enough: an unpatched (stock) build also installs a
+  # binary, but its debug module sits at [0x0,0x1000) and every A1/A2
+  # golden run dies with "devices at [0, 1000) and [0, 40000) overlap".
+  # Require the spike-mcu platform patch in the installed header
+  # (tb/arch/README.md). A user-set SPIKE_BIN is trusted as-is.
+  if [ -n "${SPIKE_BIN:-}" ]; then [ -x "$SPIKE_BIN" ]; return; fi
+  [ -x "$SPIKE_BIN_DEFAULT" ] || return 1
+  grep -q "define DEBUG_START        0x40000000" "$SPIKE_PRE/include/riscv/platform.h" 2>/dev/null \
+    && grep -q "define DEFAULT_RSTVEC     0x40001000" "$SPIKE_PRE/include/riscv/platform.h" 2>/dev/null
+}
 if spike_ok; then
   ok "spike (${SPIKE_BIN:-$SPIKE_BIN_DEFAULT})"
 else
-  log "spike not found; building pinned commit $SPIKE_PIN (~5 min)"
+  log "spike missing or unpatched; building pinned commit $SPIKE_PIN with the spike-mcu platform patch (~5 min)"
   if confirm "build Spike from source?"; then
     if [ "$OS" = mac ]; then
       brew install dtc >/dev/null 2>&1 || fail "brew dtc failed"
@@ -301,14 +311,22 @@ else
       [ -d "$SP_SRC" ] || git clone -q https://github.com/riscv/riscv-isa-sim.git "$SP_SRC" \
         || fail "spike clone failed"
       SP_LOG="$DL_DIR/spike-build.log"
-      ( cd "$SP_SRC" && git checkout -q "$SPIKE_PIN" && mkdir -p build && cd build \
+      ( cd "$SP_SRC" && git checkout -q "$SPIKE_PIN" \
+        && sed -i.bak \
+             -e 's|^#define DEBUG_START        0x0$|#define DEBUG_START        0x40000000  /* moved: was 0x0 (debug module); frees [0x0,0x40000) for target memory */|' \
+             -e 's|^#define DEFAULT_RSTVEC     0x00001000$|#define DEFAULT_RSTVEC     0x40001000  /* moved: was 0x00001000 (boot ROM); frees [0x0,0x40000) for target memory */|' \
+             riscv/platform.h \
+        && grep -q "define DEBUG_START        0x40000000" riscv/platform.h \
+        && grep -q "define DEFAULT_RSTVEC     0x40001000" riscv/platform.h \
+        && rm -f riscv/platform.h.bak \
+        && mkdir -p build && cd build \
         && ../configure --prefix="$SPIKE_PRE" >"$SP_LOG" 2>&1 \
         && make -j"$NCPU" >>"$SP_LOG" 2>&1 && make install >>"$SP_LOG" 2>&1 ) \
-        || { fail "spike build failed (log: $SP_LOG)"; tail -20 "$SP_LOG" >&2; }
-      if [ -x "$SPIKE_BIN_DEFAULT" ]; then
-        ok "spike built ($SPIKE_BIN_DEFAULT)"
+        || { fail "spike build/patch failed (log: $SP_LOG)"; tail -20 "$SP_LOG" >&2; }
+      if spike_ok; then
+        ok "spike built + platform patch verified ($SPIKE_BIN_DEFAULT)"
       else
-        fail "spike build did not produce $SPIKE_BIN_DEFAULT"
+        fail "spike build did not produce a patched $SPIKE_BIN_DEFAULT"
       fi
     fi
   else
