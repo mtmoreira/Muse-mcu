@@ -38,8 +38,29 @@ TOOLCHAIN = os.environ.get("TOOLCHAIN",
                  os.path.expanduser("~/work/toolchains")),
                  "riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin"))
 CC = os.path.join(TOOLCHAIN, "riscv-none-elf-gcc")
-SPIKE = (os.environ.get("SPIKE_BIN") or shutil.which("spike")
-         or os.path.expanduser("~/workspace/toolchains/spike-mcu/bin/spike"))
+def _find_spike():
+    """The goldens require the spike-mcu build (tb/arch/README.md): stock
+    Spike puts its debug module at [0x0,0x1000), which overlaps the
+    -m0x0:0x40000 map and dies with 'devices at [0, 1000) and
+    [0, 40000) overlap'. Prefer the known spike-mcu locations over PATH,
+    where a stock spike (e.g. Homebrew's) may sit."""
+    env = os.environ.get("SPIKE_BIN")
+    if env:
+        return env
+    cands = []
+    tcr = os.environ.get("TOOLCHAIN_ROOT")
+    if tcr:
+        cands.append(os.path.join(tcr, "spike-mcu", "bin", "spike"))
+    for root in ("~/work/toolchains", "~/workspace/toolchains"):
+        cands.append(os.path.expanduser(
+            os.path.join(root, "spike-mcu", "bin", "spike")))
+    for c in cands:
+        if os.path.isfile(c) and os.access(c, os.X_OK):
+            return c
+    return shutil.which("spike") or cands[-1]
+
+
+SPIKE = _find_spike()
 
 HEXLINE = re.compile(r"^[0-9a-f]{8}$")
 
