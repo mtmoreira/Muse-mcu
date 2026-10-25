@@ -1,0 +1,7 @@
+image_demo firmware freeze 2026-10-16T18:53:01Z
+git_head: 7fb2a15f0474dbe4e7f316c664c27ba561219efe
+elf_sha256: ab541ed7c3c13031cf82006afee764d2f4d921f229e22ec723f1c071e6d85471
+hex_sha256: ba5941f04651add969ca240124c903de1ab15acff9744635367b0de4c0da1ba4
+bin_sha256: 457b3199ead1501ae7c12b0917d725bc50018d5d32e2c020f3cc676baa01fa9d
+app_source_sha256: 64551079e4df52ac895586d1ed07d6b6ad4024c80b88ff52b7c97f5235e79e3d
+config: tick 1000 Hz, preemption on, time slicing kernel default (macro undefined), priorities IO=1 GX=2 GY=2 Combine=3

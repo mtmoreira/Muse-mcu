@@ -1,8 +1,8 @@
-setup record 2026-10-16T02:26:27Z
-python: Python 3.12.3
-iverilog: 
-gtkwave: Usage: gtkwave [OPTION]... [DUMPFILE] [SAVEFILE] [RCFILE]
-gcc: riscv-none-elf-gcc (xPack GNU RISC-V Embedded GCC x86_64) 15.2.0
+setup record 2026-10-16T18:53:00Z
+python: Python 3.15.0
+iverilog: Icarus Verilog version 13.0 (stable) (v13_0)
+gtkwave: GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+gcc: 
 cv2 4.11.0
 numpy 2.5.4
 pillow 11.3.0

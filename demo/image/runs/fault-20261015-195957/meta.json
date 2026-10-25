@@ -1,0 +1,4 @@
+{"kind": "main", "run_id": "fault-20261015-195957", "fault": 1,
+ "input_raw": "/Users/matheustrev/work/Muse-mcu/demo/image/inputs/main.raw", "input_json": "/Users/matheustrev/work/Muse-mcu/demo/image/inputs/main.json",
+ "ref_dir": "/Users/matheustrev/work/Muse-mcu/demo/image/refs/main", "flash_bin": "/Users/matheustrev/work/Muse-mcu/demo/image/inputs/main_flash.bin",
+ "elf": "/Users/matheustrev/work/Muse-mcu/fw/build/image_demo.elf"}

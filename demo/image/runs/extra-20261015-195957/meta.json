@@ -1,0 +1,4 @@
+{"kind": "extra", "run_id": "extra-20261015-195957", "fault": 0,
+ "input_raw": "/Users/matheustrev/work/Muse-mcu/demo/image/inputs/extra.raw", "input_json": "/Users/matheustrev/work/Muse-mcu/demo/image/inputs/extra.json",
+ "ref_dir": "/Users/matheustrev/work/Muse-mcu/demo/image/refs/extra", "flash_bin": "/Users/matheustrev/work/Muse-mcu/demo/image/inputs/extra_flash.bin",
+ "elf": "/Users/matheustrev/work/Muse-mcu/fw/build/image_demo.elf"}
