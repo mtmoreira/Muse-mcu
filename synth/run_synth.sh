@@ -23,11 +23,14 @@ PDK_LIB="$PDK_DIR/NangateOpenCellLibrary_typical.lib"
 [ -f "$PDK_LIB" ] || { echo "F1: FAIL: PDK liberty not found: $PDK_LIB (set PDK_DIR)"; exit 1; }
 
 # Yosys 0.33 script files have no env expansion: substitute the placeholder.
-sed "s|@PDK_LIB@|$PDK_LIB|g" synth/mcu.ys > synth/mcu.ys.gen
+# The generated name must END in .ys: yosys guesses the input frontend from
+# the extension and rejects anything else ("Can't guess frontend"), which
+# the earlier mcu.ys.gen name tripped on every platform.
+sed "s|@PDK_LIB@|$PDK_LIB|g" synth/mcu.ys > synth/mcu.gen.ys
 
 LOG=tb/logs/synth.log
 echo "F1: yosys synth (log: $LOG)"
-yosys -l "$LOG" synth/mcu.ys.gen
+yosys -l "$LOG" synth/mcu.gen.ys
 rc=$?
 echo "F1: yosys exit code = $rc"
 [ $rc -eq 0 ] || { echo "F1: FAIL: yosys nonzero exit"; exit 1; }

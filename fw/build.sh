@@ -50,3 +50,20 @@ with open('$ROOT/fw/build/flash.hex','w') as f:
     f.write('\n'.join('%02x' % b for b in data) + '\n')
 "
 echo "build.sh: flash.hex OK"
+
+# Arch-test images + Spike goldens (A1/A2): tools/build_arch.py writes
+# fw/build/arch/<name>.hex (consumed by tb/run_arch.sh) and the golden
+# signatures in results/raw/arch/. Nothing else in the automation
+# produced these, so a fresh tree failed A1/A2 for missing inputs.
+echo "build.sh: arch-test images + Spike goldens (A1/A2)"
+python3 "$ROOT/tools/build_arch.py" || { echo "build.sh: FAIL build_arch"; exit 1; }
+
+# Testbench mini-programs (A3-A6): tb/build/<name>.hex consumed by
+# tb/run_reset.sh, tb/run_trap.sh, tb/run_irq.sh, tb/run_memmap.sh.
+# Same gap as above: mini_build.sh existed but nothing called it.
+echo "build.sh: tb mini-programs (A3-A6)"
+for p in reset trap irq memmap; do
+  MMCU="$ROOT" TOOLCHAIN="$TOOLCHAIN" bash "$ROOT/tb/mini_build.sh" "$p" \
+    || { echo "build.sh: FAIL mini_build $p"; exit 1; }
+done
+echo "build.sh: tb mini-programs OK"

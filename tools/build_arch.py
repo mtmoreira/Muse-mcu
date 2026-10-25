@@ -38,8 +38,8 @@ TOOLCHAIN = os.environ.get("TOOLCHAIN",
                  os.path.expanduser("~/work/toolchains")),
                  "riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin"))
 CC = os.path.join(TOOLCHAIN, "riscv-none-elf-gcc")
-SPIKE = os.environ.get("SPIKE_BIN",
-        os.path.expanduser("~/workspace/toolchains/spike-mcu/bin/spike"))
+SPIKE = (os.environ.get("SPIKE_BIN") or shutil.which("spike")
+         or os.path.expanduser("~/workspace/toolchains/spike-mcu/bin/spike"))
 
 HEXLINE = re.compile(r"^[0-9a-f]{8}$")
 

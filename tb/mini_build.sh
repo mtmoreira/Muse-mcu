@@ -3,8 +3,9 @@
 # Usage: mini_build.sh <name>
 set -euo pipefail
 NAME="$1"
-MMCU="${MMCU:-$HOME/workspace/Muse-mcu}"
-TC="${TOOLCHAIN:-$HOME/workspace/toolchains/riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin}"
+MMCU="${MMCU:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+TC="${TOOLCHAIN:-${TOOLCHAIN_ROOT:-$HOME/work/toolchains}/riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin}"
+[ -x "$TC/riscv-none-elf-gcc" ] || TC="$HOME/workspace/toolchains/riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin"
 [ -x "$TC/riscv-none-elf-gcc" ] || TC="$HOME/workspace/building-ai-computer/toolchains/riscv/xpack-riscv-none-elf-gcc-15.2.0-1/bin"
 mkdir -p "$MMCU/tb/build"
 "$TC/riscv-none-elf-gcc" -march=rv32i_zicsr -mabi=ilp32 -T "$MMCU/tb/mini.ld" \
